@@ -49,7 +49,10 @@ public class NexusConnector extends WebSocketClient {
         super(getNexusURI());
         this.token = System.getenv("TOKEN");
         this.axon = System.getenv("AXON_HOST");
-        this.debug = !System.getenv("NEXUS_DEBUG").isEmpty();
+        this.debug = false;
+        if(System.getenv("NEXUS_DEBUG") != null){
+            this.debug = true;
+        }
         this.parent = connectCallback;
         Class<?> enclosingClass = this.parent.getClass().getEnclosingClass();
         if (enclosingClass != null) {
