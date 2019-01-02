@@ -47,10 +47,16 @@ Every `Callback` returns a `Message` to the `btNexus` with the name of the origi
 # Install btnexus-node-java
 
 Clone the Repository and import it in intellij (https://www.jetbrains.com/idea/)
-When you open the project with intellij it asks you to link it to your gradle.
-Choose the default settings here.
+When you open the projects folder with intellij it asks you to link it to your gradle.
+You can also open the build.gradle file. Intellij will ask you if you want to open `as file` or `as project`.
+Choose `as project` here.
+For the following question on the gradle settings choose the default settings(should be `use default gradle wrapper`).
 To test if everything went well run the App under the test folder. (Right click on App.java -> Run App.main())
 This should trigger the examples implemented in the test folder.
+(Keep in mind that you need to have your environment variables set)
+
+After these steps there should be a fatJAR in `btnexus-node-java/build/libs`.
+This fatJAR can be included in your own Applications.
 
 <!-- ## easiest solution
 With pip you can install the repository directly.
@@ -169,6 +175,7 @@ The ListeningNode and all further examples can be seen in the test folder.
 
 
 # Implement your own Node
+Put the produced fatJAR in your External Libraries.
 First you need know the purpose of your Node.
 Nodes should be small and serve only one purpose.
 To implement your own Node you need to inherit from the Node class,
