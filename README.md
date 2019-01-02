@@ -55,6 +55,8 @@ To test if everything went well run the App under the test folder. (Right click 
 This should trigger the examples implemented in the test folder.
 (Keep in mind that you need to have your environment variables set)
 
+If the test went well you can build a fatJAR with gradle.
+Open the Gradle view(on the right side) and under Tasks -> shadow run the task `shadowJar`
 After these steps there should be a fatJAR in `btnexus-node-java/build/libs`.
 This fatJAR can be included in your own Applications.
 
