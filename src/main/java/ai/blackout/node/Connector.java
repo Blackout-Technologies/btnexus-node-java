@@ -9,6 +9,10 @@ public interface Connector{
      * Put the calls to subscribe() here.
      * And if you want your Node to send an initial Hello message, you should also put it here!
      */
-    public void connectCallback();
+    public void onConnected();
+    public void onDisconnected();
+    public void onError(Exception ex);
+    public void setUp();
+    public void cleanUp();
 }
 

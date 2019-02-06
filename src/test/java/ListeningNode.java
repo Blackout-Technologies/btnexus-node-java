@@ -16,8 +16,8 @@ public class ListeningNode extends Node{
      * Constructor
      * @throws URISyntaxException
      */
-    public ListeningNode() throws URISyntaxException {
-        super();
+    public ListeningNode(String token, String axonURL, boolean debug) throws URISyntaxException {
+        super( token,  axonURL,  debug);
     }
 
     /**
@@ -41,11 +41,11 @@ public class ListeningNode extends Node{
         return fuse;
     }
     /**
-     * This will be executed after a the Node is succesfully connected to the btNexus
+     * This will be executed after a the Node is successfully connected to the btNexus
      * Here you need to subscribe and set everything else up.
      */
     @Override
-    public void connectCallback() {
+    public void onConnected() {
         try {
             this.subscribe("exampleGroup", "example", "printTime", this::printTime);
             this.subscribe("exampleGroup", "example", "fuseTime", this::fuseTime);
@@ -53,4 +53,14 @@ public class ListeningNode extends Node{
             e.printStackTrace();
         }
     }
+    @Override
+    public void onDisconnected(){
+        System.out.println("I was disconnected!");
+        // DO SOME CLEANUP HERE IF NEEDED
+
+        //IF YOU WANT TO RECONNECT CALL THE SUPER onDisconnected()
+        super.onDisconnected();
+    }
+
+
 }

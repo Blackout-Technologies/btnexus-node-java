@@ -13,13 +13,63 @@ import org.json.simple.JSONObject;
  * This Node shows how to implement an active Node which sends different Messages
  */
 public class SendingNode extends Node{
-
+    Thread sendThread;
+    boolean shouldRun;
     /**
      * Constructor
      * @throws URISyntaxException
      */
-    public SendingNode() throws URISyntaxException {
-        super();
+    public SendingNode(String token, String axonURL, boolean debug) throws URISyntaxException {
+        super( token,  axonURL,  debug);
+    }
+
+    @Override
+    public void setUp(){
+        super.setUp();
+        Runnable exec = new Runnable() {
+            /**
+             * Sending current minute and second to the ListeningNode on the printTime and fuseTime callback.
+             */
+            @Override
+            public void run() {
+                while(shouldRun){   // Only run as long as the Node is connected - otherwise there would be 2 Threads after a reconnect!!! - doesnt work properly if reconnect is faster than loop!!! Use some cleanup mechanism
+                    LocalTime time = java.time.LocalTime.now();
+                    int min = time.getMinute();
+                    int sec = time.getSecond();
+                    JSONArray arrayParams = new JSONArray();
+                    arrayParams.add(min);
+                    arrayParams.add(sec);
+                    JSONObject objectParams = new JSONObject();
+                    objectParams.put("min", min);
+                    objectParams.put("sec", sec);
+                    try {
+                        publish("exampleGroup", "example", "printTime", arrayParams);
+                        publish("exampleGroup", "example", "fuseTime", objectParams);
+                    } catch (NexusNotConnectedException e) {
+                        onError(e);
+                    }
+                    try {
+                        TimeUnit.SECONDS.sleep(5);
+                    } catch (InterruptedException e) {
+                        onError(e);
+                    }
+                }
+            }
+        };
+        this.sendThread = new Thread(exec);
+        this.shouldRun = true;
+    }
+
+    @Override
+    public void cleanUp(){
+        super.cleanUp();
+        try {
+            this.shouldRun = false;
+            this.sendThread.join();
+        } catch (InterruptedException e) {
+            onError(e);
+        }
+
     }
 
     /**
@@ -40,42 +90,10 @@ public class SendingNode extends Node{
      * Here you need to subscribe and set everything else up.
      */
     @Override
-    public void connectCallback() {
+    public void onConnected() {
         try {
             this.subscribe("exampleGroup", "example", "fuseTime_response", this::fuseTime_response);
-
-            Runnable exec = new Runnable() {
-                /**
-                 * Sending currenct minute and second to the ListeningNode on the printTime and fuseTime callback.
-                 */
-                @Override
-                public void run() {
-                    while(true){
-                        LocalTime time = java.time.LocalTime.now();
-                        int min = time.getMinute();
-                        int sec = time.getSecond();
-                        JSONArray arrayParams = new JSONArray();
-                        arrayParams.add(min);
-                        arrayParams.add(sec);
-                        JSONObject objectParams = new JSONObject();
-                        objectParams.put("min", min);
-                        objectParams.put("sec", sec);
-                        try {
-                            publish("exampleGroup", "example", "printTime", arrayParams);
-                            publish("exampleGroup", "example", "fuseTime", objectParams);
-                        } catch (NexusNotConnectedException e) {
-                            e.printStackTrace();
-                        }
-                        try {
-                            TimeUnit.SECONDS.sleep(5);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            };
-            Thread thread = new Thread(exec);
-            thread.start();
+            sendThread.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
