@@ -1,6 +1,7 @@
 package ai.blackout.node;
 
 //System imports
+import java.net.Proxy;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
@@ -19,6 +20,31 @@ public abstract class Node implements Connector {
 
     /**
      * Constructor for the Node
+     * @param token Token for the authentification with the axon
+     * @param path URL to axon
+     * @param debug should debug messages be sent
+     * @param proxy the proxy which should be used for the connection
+     */
+    public Node(String token, String path, boolean debug, Proxy proxy) throws URISyntaxException {
+        Class<?> enclosingClass = this.getClass().getEnclosingClass();
+        if (enclosingClass != null) {
+            this.nodeName = enclosingClass.getName();
+        } else {
+            this.nodeName = this.getClass().getName();
+        }
+        if (!path.substring(path.length() - 1).equals("/")){
+            path = path + "/";
+        }
+        String fullPath = path + this.nodeName;
+        this.nexus = new NexusConnector(this, token, fullPath, debug, proxy);
+
+    }
+
+    /**
+     * Constructor for the Node
+     * @param token Token for the authentification with the axon
+     * @param path URL to axon
+     * @param debug should debug messages be sent
      */
     public Node(String token, String path, boolean debug) throws URISyntaxException {
  //       System.setProperty("java.net.useSystemProxies", "true");
@@ -33,8 +59,8 @@ public abstract class Node implements Connector {
         }
         String fullPath = path + this.nodeName;
         this.nexus = new NexusConnector(this, token, fullPath, debug);
-
     }
+    
 
     public boolean isConnected(){
         return this.nexus.isConnected();

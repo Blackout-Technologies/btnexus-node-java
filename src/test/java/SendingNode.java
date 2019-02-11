@@ -1,4 +1,5 @@
 //System imports
+import java.net.Proxy;
 import java.net.URISyntaxException;
 import java.time.LocalTime;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +24,17 @@ public class SendingNode extends Node{
         super( token,  axonURL,  debug);
     }
 
+    /**
+     * Constructor
+     * @throws URISyntaxException
+     */
+    public SendingNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+        super( token,  axonURL,  debug, proxy);
+    }
+
+    /**
+     * Setting up everything. This will be called everytime before the connection is established
+     */
     @Override
     public void setUp(){
         super.setUp();
@@ -32,7 +44,7 @@ public class SendingNode extends Node{
              */
             @Override
             public void run() {
-                while(shouldRun){   // Only run as long as the Node is connected - otherwise there would be 2 Threads after a reconnect!!! - doesnt work properly if reconnect is faster than loop!!! Use some cleanup mechanism
+                while(shouldRun){   //  Make sure Thread terminates on reconnect
                     LocalTime time = java.time.LocalTime.now();
                     int min = time.getMinute();
                     int sec = time.getSecond();
@@ -60,6 +72,10 @@ public class SendingNode extends Node{
         this.shouldRun = true;
     }
 
+    /**
+     * Cleaning up everything. This will be called everytime after a disconnect happend
+     * if not differently specified in onDisconnected()
+     */
     @Override
     public void cleanUp(){
         super.cleanUp();
@@ -86,8 +102,8 @@ public class SendingNode extends Node{
     }
 
     /**
-     * This will be executed after a the Node is succesfully connected to the btNexus
-     * Here you need to subscribe and set everything else up.
+     * This will be executed after the Node is successfully connected to the btNexus
+     * Here you need to subscribe and start your Threads.
      */
     @Override
     public void onConnected() {

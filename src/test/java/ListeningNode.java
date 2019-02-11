@@ -1,4 +1,5 @@
 //System imports
+import java.net.Proxy;
 import java.net.URISyntaxException;
 
 //3rd party imports
@@ -18,6 +19,14 @@ public class ListeningNode extends Node{
      */
     public ListeningNode(String token, String axonURL, boolean debug) throws URISyntaxException {
         super( token,  axonURL,  debug);
+    }
+
+    /**
+     * Constructor
+     * @throws URISyntaxException
+     */
+    public ListeningNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+        super( token,  axonURL,  debug, proxy);
     }
 
     /**

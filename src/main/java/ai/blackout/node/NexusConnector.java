@@ -40,6 +40,9 @@ public class NexusConnector extends WebSocketClient {
      * Constructor for the NexusConnector.
      *
      * @param connectCallback the callback which is triggered if connected to the nexus
+     * @param token Token for the authentification with the axon
+     * @param axonURL URL to axon
+     * @param debug should debug messages be sent
      */
     public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug) throws URISyntaxException {
         super(getNexusURI(axonURL));
@@ -60,25 +63,6 @@ public class NexusConnector extends WebSocketClient {
         //GET SYSTEMPROXY
         try {
             List<Proxy> l = ProxySelector.getDefault().select(getNexusURI(this.axon));
-
-            //FOR TESTING
-
-            if (l != null) {
-                for (Iterator iter = l.iterator(); iter.hasNext();) {
-                    java.net.Proxy proxy = (java.net.Proxy) iter.next();
-                    System.out.println("proxy hostname : " + proxy.type());
-                    InetSocketAddress addr = (InetSocketAddress) proxy.address();
-                    if (addr == null) {
-                        System.out.println("No Proxy");
-                    }
-                    else {
-                        System.out.println("proxy hostname : " + addr.getHostName());
-                        System.out.println("proxy port : " + addr.getPort());
-                    }
-                }
-            }
-
-
             this.proxy = l.get(0);
             this.setProxy(this.proxy);
         }
@@ -86,6 +70,21 @@ public class NexusConnector extends WebSocketClient {
             this.onError(e);
         }
 
+    }
+
+    /**
+     * Constructor for the NexusConnector.
+     *
+     * @param connectCallback the callback which is triggered if connected to the nexus
+     * @param token Token for the authentification with the axon
+     * @param axonURL URL to axon
+     * @param debug should debug messages be sent
+     * @param proxy the proxy which should be used for the connection
+     */
+    public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+        this( connectCallback,  token,  axonURL,  debug);
+        this.proxy = proxy;
+        this.setProxy(this.proxy);
     }
 
     /**
@@ -104,14 +103,7 @@ public class NexusConnector extends WebSocketClient {
         this.nodeID = nexus.getNodeID();
         this.callbacks = new HashMap<String, Map<String, Map<String, Callback>>>();// callbacks cannot be copied because they are not subscribed - a copied nexusConnector is not connected yet.
         this.proxy = nexus.getProxy();
-        try {
-            List<Proxy> l = ProxySelector.getDefault().select(getNexusURI(this.axon));
-            this.proxy = l.get(0);
-            this.setProxy(this.proxy);
-        }
-        catch (URISyntaxException e) {
-            this.onError(e);
-        }
+        this.setProxy(this.proxy);
     }
     public boolean isConnected() {
         return this.isConnected;
@@ -227,7 +219,7 @@ public class NexusConnector extends WebSocketClient {
         Callback callback;
         String group = (String) msg.get("group");
         params = payload.get(callbackName);
-        System.out.println("Callbacks right now: " + this.callbacks); //TODO: remove
+        //System.out.println("Callbacks right now: " + this.callbacks); //TODO: remove
         callback = this.callbacks.get(group).get(topic).get(callbackName);
         if (callback != null) {
             CallbackExecution exec = new CallbackExecution(callback, params, this, group, topic, callbackName);
@@ -267,7 +259,7 @@ public class NexusConnector extends WebSocketClient {
             this.callbacks.get(group).put(topic, new HashMap<String, Callback>());
         }
         this.callbacks.get(group).get(topic).put(name, callback);
-        System.out.println(this.callbacks);//TODO: remove
+        //System.out.println(this.callbacks);//TODO: remove
 
     }
 
@@ -311,7 +303,7 @@ public class NexusConnector extends WebSocketClient {
         }else{
             this.callbacks.get(group).get(topic).remove(name);
         }
-        System.out.println(this.callbacks);//TODO: remove
+        //System.out.println(this.callbacks);//TODO: remove
 
     }
 
@@ -330,7 +322,8 @@ public class NexusConnector extends WebSocketClient {
             JSONObject node = new JSONObject();
             msg.put("node", node);
             send(msg.toString());
-            System.out.println("opened connection");
+            System.out.println("[" + this.parentName + "]: opened connection with " + this.proxy); //TODO: remove
+
         } catch (UnknownHostException e) {
             this.onError(e);
         }
@@ -408,7 +401,7 @@ public class NexusConnector extends WebSocketClient {
      */
     @Override
     public void onMessage(String message) {
-        System.out.println(message); //TODO: remove
+        //System.out.println(message); //TODO: remove
         Message msg;
         try {
             JSONParser parser = new JSONParser();
@@ -421,28 +414,28 @@ public class NexusConnector extends WebSocketClient {
         JSONObject api = (JSONObject) msg.get("api");
         String intent = (String) api.get("intent");
         if (intent.equals("registerSuccess")) {
-            System.out.println("[Nexus]: Registered successfully");
+            System.out.println("[" + this.parentName + "]: Registered successfully");
             this.isRegistered = true;
             this.isConnected = true;
             this.connector.onConnected();
         } else if (intent.equals("registerFailed")) {
-            System.out.println("[Nexus]: Register failed with reason: " + msg.get("reason"));
+            System.out.println("[" + this.parentName + "]: Register failed with reason: " + msg.get("reason"));
         } else if (intent.equals("subscribeSuccess")) {
-            System.out.println("[Nexus]: Subscribed to: " + msg.get("topic"));
+            System.out.println("[" + this.parentName + "]: Subscribed to: " + msg.get("topic"));
         } else if (intent.equals("subscribeFailed")) {
-            System.out.println("[Nexus]: Failed to Subscribed to: " + msg.get("topic"));
+            System.out.println("[" + this.parentName + "]: Failed to Subscribed to: " + msg.get("topic"));
         } else if (intent.equals("joinSuccess")) {
-            System.out.println("[Nexus]: Joined Group: " + msg.get("groupName"));
+            System.out.println("[" + this.parentName + "]: Joined Group: " + msg.get("groupName"));
         } else if (intent.equals("joinFailed")) {
-            System.out.println("[Nexus]: Failed to join Group: " + msg.get("groupName"));
+            System.out.println("[" + this.parentName + "]: Failed to join Group: " + msg.get("groupName"));
         } else if (intent.equals("leaveSuccess")) {
-            System.out.println("[Nexus]: left Group: " + msg.get("groupName"));
+            System.out.println("[" + this.parentName + "]: left Group: " + msg.get("groupName"));
         } else if (intent.equals("leaveFailed")) {
-            System.out.println("[Nexus]: Failed to leave Group: " + msg.get("groupName"));
+            System.out.println("[" + this.parentName + "]: Failed to leave Group: " + msg.get("groupName"));
         } else if (intent.equals("unsubscribeSuccess")) {
-            System.out.println("[Nexus]: unsubscribed from topic: " + msg.get("topic"));
+            System.out.println("[" + this.parentName + "]: unsubscribed from topic: " + msg.get("topic"));
         } else if (intent.equals("unsubscribeFailed")) {
-            System.out.println("[Nexus]: Failed to unsubscribed from topic: " + msg.get("topic"));
+            System.out.println("[" + this.parentName + "]: Failed to unsubscribed from topic: " + msg.get("topic"));
         } else {
             if (this.isRegistered) {
 //                JSONParser parser = new JSONParser();
@@ -514,7 +507,7 @@ public class NexusConnector extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         this.isConnected = false;
-        System.out.println("[Nexus]: Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: " + reason);
+        System.out.println("[" + this.parentName + "]: Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: " + reason);
         this.connector.onDisconnected();
         //if (this.autoReconnect) {
         //    this.autoReconnectCallback.run();
@@ -538,24 +531,4 @@ public class NexusConnector extends WebSocketClient {
 
     }
 
-//    /**
-//     * Setter for autoReconnect
-//     * @param autoReconnect switch on/off
-//     * @param connectionLostTimeout number of seconds after which the connection should be tested
-//     * @param callback Callback for the case the connection is lost.
-//     */
-//    public void setAutoReconnect(boolean autoReconnect, int connectionLostTimeout, Runnable callback) {
-//        this.autoReconnect = autoReconnect;
-//        this.autoReconnectCallback = callback;
-//        setConnectionLostTimeout(connectionLostTimeout);
-//        startConnectionLostTimer();
-//
-//    }
-//
-//    /**
-//     * Getter for autoReconnect
-//     */
-//    public boolean getAutoReconnect() {
-//        return this.autoReconnect;
-//    }
 }

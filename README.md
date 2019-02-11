@@ -7,7 +7,7 @@
 |Author|Adrian Lubitz|
 |Author|Marc Fiedler|
 |Email|dev@blackout.ai|
-|Latest stable version|3.0.0|
+|Latest stable version|3.1.0|
 |Required Axon versions| >= 3.0.0|
 |Runs on|Java|
 |State|`Stable`|
@@ -42,7 +42,6 @@ Every `Callback` returns a `Message` to the `btNexus` with the name of the origi
 
 * JRE installed
 * Owner of a btNexus instance or a btNexus account
-* Set the environment variables `AXON_HOST`, `TOKEN` and if you want `NEXUS_DEBUG`
 
 # Install btnexus-node-java
 
@@ -53,35 +52,31 @@ Choose `as project` here.
 For the following question on the gradle settings choose the default settings(should be `use default gradle wrapper`).
 To test if everything went well run the App under the test folder. (Right click on App.java -> Run App.main())
 This should trigger the examples implemented in the test folder.
-(Keep in mind that you need to have your environment variables set)
+To run this test you need to set up the environment variables `AXON_HOST`, `TOKEN` and if you want a more verbose output `NEXUS_DEBUG`
+* `AXON_HOST` is the url to your instance e.g. `company1.btnexus.ai/`
+* `TOKEN` is the Access token
+* If `NEXUS_DEBUG` is set to anything you will see a more verbose output.
 
+This test should show a output like this:
+```
+Starting tests!
+[ListeningNode] setUp
+[SendingNode] setUp
+[ListeningNode]: opened connection with DIRECT
+[SendingNode]: opened connection with DIRECT
+[ListeningNode]: Registered successfully
+[SendingNode]: Registered successfully
+[ListeningNode]: Joined Group: exampleGroup
+[SendingNode]: Joined Group: exampleGroup
+[SendingNode]: Subscribed to: ai.blackout.example
+[ListeningNode]: Subscribed to: ai.blackout.example
+[ListeningNode]: 50 || 15
+[SendingNode]: 50:15
+```
 If the test went well you can build a fatJAR with gradle.
 Open the Gradle view(on the right side) and under Tasks -> shadow run the task `shadowJar`
 After these steps there should be a fatJAR in `btnexus-node-java/build/libs`.
 This fatJAR can be included in your own Applications.
-
-<!-- ## easiest solution
-With pip you can install the repository directly.
-We recommend using Anaconda (https://www.anaconda.com/), because you wont need `sudo` and you can simply use virtual environments.
-If you are using Anaconda or any other virtual environments(**recommended**) or your systems pip(**not recommended**) you can simply
-```
-pip install git+https://github.com/Blackout-Technologies/btnexus-node-python
-```
-
-## workaround
-If you cannot use pip for any reason, do the following:
-
-Install the Python modules with
-```
-sudo easy_install .
-```
-
-If you are not `sudo` use the install.sh to install the modules to your home directory
-```
-./install.sh
-```
-
-If you can not use pip you also have to install six and pyyaml manually. -->
 
 # Example Nodes
 Following you will see an example of a Node which sends out the current minute
@@ -89,6 +84,7 @@ and second every five seconds.
 
 ```java
 //System imports
+import java.net.Proxy;
 import java.net.URISyntaxException;
 import java.time.LocalTime;
 import java.util.concurrent.TimeUnit;
@@ -103,13 +99,78 @@ import org.json.simple.JSONObject;
  * This Node shows how to implement an active Node which sends different Messages
  */
 public class SendingNode extends Node{
+    Thread sendThread;
+    boolean shouldRun;
+    /**
+     * Constructor
+     * @throws URISyntaxException
+     */
+    public SendingNode(String token, String axonURL, boolean debug) throws URISyntaxException {
+        super( token,  axonURL,  debug);
+    }
 
     /**
      * Constructor
      * @throws URISyntaxException
      */
-    public SendingNode() throws URISyntaxException {
-        super();
+    public SendingNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+        super( token,  axonURL,  debug, proxy);
+    }
+
+    /**
+     * Setting up everything. This will be called everytime before the connection is established
+     */
+    @Override
+    public void setUp(){
+        super.setUp();
+        Runnable exec = new Runnable() {
+            /**
+             * Sending current minute and second to the ListeningNode on the printTime and fuseTime callback.
+             */
+            @Override
+            public void run() {
+                while(shouldRun){   //  Make sure Thread terminates on reconnect
+                    LocalTime time = java.time.LocalTime.now();
+                    int min = time.getMinute();
+                    int sec = time.getSecond();
+                    JSONArray arrayParams = new JSONArray();
+                    arrayParams.add(min);
+                    arrayParams.add(sec);
+                    JSONObject objectParams = new JSONObject();
+                    objectParams.put("min", min);
+                    objectParams.put("sec", sec);
+                    try {
+                        publish("exampleGroup", "example", "printTime", arrayParams);
+                        publish("exampleGroup", "example", "fuseTime", objectParams);
+                    } catch (NexusNotConnectedException e) {
+                        onError(e);
+                    }
+                    try {
+                        TimeUnit.SECONDS.sleep(5);
+                    } catch (InterruptedException e) {
+                        onError(e);
+                    }
+                }
+            }
+        };
+        this.sendThread = new Thread(exec);
+        this.shouldRun = true;
+    }
+
+    /**
+     * Cleaning up everything. This will be called everytime after a disconnect happend
+     * if not differently specified in onDisconnected()
+     */
+    @Override
+    public void cleanUp(){
+        super.cleanUp();
+        try {
+            this.shouldRun = false;
+            this.sendThread.join();
+        } catch (InterruptedException e) {
+            onError(e);
+        }
+
     }
 
     /**
@@ -126,52 +187,19 @@ public class SendingNode extends Node{
     }
 
     /**
-     * This will be executed after a the Node is succesfully connected to the btNexus
-     * Here you need to subscribe and set everything else up.
+     * This will be executed after the Node is successfully connected to the btNexus
+     * Here you need to subscribe and start your Threads.
      */
     @Override
-    public void connectCallback() {
+    public void onConnected() {
         try {
             this.subscribe("exampleGroup", "example", "fuseTime_response", this::fuseTime_response);
-
-            Runnable exec = new Runnable() {
-                /**
-                 * Sending currenct minute and second to the ListeningNode on the printTime and fuseTime callback.
-                 */
-                @Override
-                public void run() {
-                    while(true){
-                        LocalTime time = java.time.LocalTime.now();
-                        int min = time.getMinute();
-                        int sec = time.getSecond();
-                        JSONArray arrayParams = new JSONArray();
-                        arrayParams.add(min);
-                        arrayParams.add(sec);
-                        JSONObject objectParams = new JSONObject();
-                        objectParams.put("min", min);
-                        objectParams.put("sec", sec);
-                        try {
-                            publish("exampleGroup", "example", "printTime", arrayParams);
-                            publish("exampleGroup", "example", "fuseTime", objectParams);
-                        } catch (NexusNotConnectedException e) {
-                            e.printStackTrace();
-                        }
-                        try {
-                            TimeUnit.SECONDS.sleep(5);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            };
-            Thread thread = new Thread(exec);
-            thread.start();
+            sendThread.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 }
-
 ```
 The ListeningNode and all further examples can be seen in the test folder.
 
@@ -183,4 +211,3 @@ Nodes should be small and serve only one purpose.
 To implement your own Node you need to inherit from the Node class,
 implement your callbacks and if you are actively doing something implement your
 Threads, that for example read in sensor data. See the examples to get started ;)
-Keep in mind, that you need to set the environment variables `AXON_HOST`, `TOKEN` and if you want `NEXUS_DEBUG`.
