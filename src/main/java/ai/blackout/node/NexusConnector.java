@@ -20,7 +20,7 @@ import org.json.simple.parser.ParseException;
  */
 public class NexusConnector extends WebSocketClient {
 
-    private String protocolVersion = "5.0";
+    private String protocolVersion = "4.2";
     private UUID nodeID;
     private Map<String, Map<String, Map<String, Callback>>> callbacks;
     private boolean isRegistered = false;
@@ -30,8 +30,6 @@ public class NexusConnector extends WebSocketClient {
     private String errorTopic = "ai.blackout.error";
     private boolean debug = false;
     private Connector connector;
-    //private boolean autoReconnect = false;
-    //private Runnable autoReconnectCallback;
     private String token;
     private String axon;
     private Connector parent;
@@ -182,7 +180,6 @@ public class NexusConnector extends WebSocketClient {
      * @throws URISyntaxException
      */
     public static URI getNexusURI(String axonURL) throws URISyntaxException {
-        //String axon = System.getenv("AXON_HOST");
         String concat = "wss://" + axonURL;
         return new URI(concat);
     }
@@ -221,7 +218,6 @@ public class NexusConnector extends WebSocketClient {
         Callback callback;
         String group = (String) msg.get("group");
         params = payload.get(callbackName);
-        //System.out.println("Callbacks right now: " + this.callbacks); //TODO: remove
         callback = this.callbacks.get(group).get(topic).get(callbackName);
         if (callback != null) {
             CallbackExecution exec = new CallbackExecution(callback, params, this, group, topic, callbackName);
@@ -261,8 +257,6 @@ public class NexusConnector extends WebSocketClient {
             this.callbacks.get(group).put(topic, new HashMap<String, Callback>());
         }
         this.callbacks.get(group).get(topic).put(name, callback);
-        //System.out.println(this.callbacks);//TODO: remove
-
     }
 
     /**
@@ -289,7 +283,6 @@ public class NexusConnector extends WebSocketClient {
         // if the only callback on topic -> remove topic from map
         if (this.callbacks.get(group).get(topic).size() == 1){
             this.callbacks.get(group).remove(topic);
-            System.out.println("Sending unsub message");//TODO:remove
             Message unsub = new Message("unsubscribe");
             unsub.put("topic", topic);
             this.publishMessage(unsub);
@@ -300,12 +293,10 @@ public class NexusConnector extends WebSocketClient {
                 this.callbacks.remove(group);
                 //leave message
                 leave(group);
-                System.out.println("Left group " + group); //TODO: remove
             }
         }else{
             this.callbacks.get(group).get(topic).remove(name);
         }
-        //System.out.println(this.callbacks);//TODO: remove
 
     }
 
@@ -403,7 +394,6 @@ public class NexusConnector extends WebSocketClient {
      */
     @Override
     public void onMessage(String message) {
-        //System.out.println(message); //TODO: remove
         Message msg;
         try {
             JSONParser parser = new JSONParser();
