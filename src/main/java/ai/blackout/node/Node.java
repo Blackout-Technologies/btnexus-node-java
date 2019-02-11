@@ -37,7 +37,6 @@ public abstract class Node implements Connector {
         }
         String fullPath = path + this.nodeName;
         this.nexus = new NexusConnector(this, token, fullPath, debug, proxy);
-
     }
 
     /**

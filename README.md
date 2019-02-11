@@ -211,3 +211,13 @@ Nodes should be small and serve only one purpose.
 To implement your own Node you need to inherit from the Node class,
 implement your callbacks and if you are actively doing something implement your
 Threads, that for example read in sensor data. See the examples to get started ;)
+
+# Proxy Support
+By default a Node uses the system proxy settings. 
+If you want to use a specific proxy the Node can accept the proxy in the constructor:
+
+```java
+Proxy socksProxy = new Proxy(Proxy.Type.SOCKS,
+        new InetSocketAddress("209.181.248.29",	9050));
+testNode = new ListeningNode(token, axon, debug, socksProxy);
+```

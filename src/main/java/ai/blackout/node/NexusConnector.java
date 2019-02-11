@@ -3,6 +3,7 @@ package ai.blackout.node;
 //System imports
 import java.net.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 //3rd party imports
 import org.java_websocket.client.WebSocketClient;
@@ -19,6 +20,7 @@ import org.json.simple.parser.ParseException;
  */
 public class NexusConnector extends WebSocketClient {
 
+    private String protocolVersion = "5.0";
     private UUID nodeID;
     private Map<String, Map<String, Map<String, Callback>>> callbacks;
     private boolean isRegistered = false;
@@ -230,7 +232,7 @@ public class NexusConnector extends WebSocketClient {
                 try {
                     publishDebug("Callback " + callbackName + " doesn't exist in node " + parentName + " on topic " + topic + " in group " + group);
                 } catch (NexusNotConnectedException ne) {
-                    System.out.println(ne);
+                    onError(ne);
                 }
             }
         }
@@ -322,7 +324,7 @@ public class NexusConnector extends WebSocketClient {
             JSONObject node = new JSONObject();
             msg.put("node", node);
             send(msg.toString());
-            System.out.println("[" + this.parentName + "]: opened connection with " + this.proxy); //TODO: remove
+            System.out.println("[" + this.parentName + "]: opened connection with " + this.proxy);
 
         } catch (UnknownHostException e) {
             this.onError(e);
@@ -414,6 +416,30 @@ public class NexusConnector extends WebSocketClient {
         JSONObject api = (JSONObject) msg.get("api");
         String intent = (String) api.get("intent");
         if (intent.equals("registerSuccess")) {
+            //Check Version here
+            String [] parts = this.protocolVersion.split(Pattern.quote("."));
+            int major = Integer.parseInt(parts[0]);
+            int minor = Integer.parseInt(parts[1]);
+            String msgVersion = (String)api.get("version");
+            parts = msgVersion.split(Pattern.quote("."));
+            int msgMajor = Integer.parseInt(parts[0]);
+            int msgMinor = Integer.parseInt(parts[1]);
+
+            if(major > msgMajor) {
+                onClose(-1, "The Axon you are trying to connect to is no longer supported! Major Version must be greater than " + major + " but is " + msgMajor, false);
+                return;
+            }
+            if (major == msgMajor && minor > msgMinor){
+                    //info minor is smaller
+                try {
+                    publishDebug("Minor Version missmatch");
+                }catch (NexusNotConnectedException ne){
+                    onError(ne);
+                }
+            }
+
+
+
             System.out.println("[" + this.parentName + "]: Registered successfully");
             this.isRegistered = true;
             this.isConnected = true;
@@ -459,7 +485,7 @@ public class NexusConnector extends WebSocketClient {
      */
     public void publishDebug(String debug) throws NexusNotConnectedException {
         if (this.debug) {
-            System.out.println(debug);
+            System.out.println("[" + this.parentName + "]: Debug: " +debug);
             Message debMsg = new Message("publish");
             debMsg.put("topic", this.debugTopic);
             JSONObject debugObj = new JSONObject();
