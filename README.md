@@ -221,3 +221,4 @@ Proxy socksProxy = new Proxy(Proxy.Type.SOCKS,
         new InetSocketAddress("209.181.248.29",	9050));
 testNode = new ListeningNode(token, axon, debug, socksProxy);
 ```
+This was tested with SOCKS5 proxy
