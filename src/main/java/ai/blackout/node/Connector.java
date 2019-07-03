@@ -10,9 +10,21 @@ public interface Connector{
      * And if you want your Node to send an initial Hello message, you should also put it here!
      */
     public void onConnected();
-    public void onDisconnected();
+    /**
+     * Implement this to handle the things, which should be done after the node is disconnected from the nexus.
+     */
+    public void onDisconnected(int code, String reason, boolean remote);
+    /**
+     * Implement this to handle the things, which should be when an error occurs.
+     */
     public void onError(Exception ex);
+    /**
+     * Implement this to handle the things, which should be done before the connection to nexus is established.
+     */
     public void setUp();
+    /**
+     * Implement this to handle the things, which should be when you disconnect the node.
+     */
     public void cleanUp();
 }
 

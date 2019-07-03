@@ -25,26 +25,16 @@ import ai.blackout.node.Callback;
 
 public class PostRequest {
 
-    public class HTTPExceptionWithReason extends HTTPException{
-        private String reason;
-        public HTTPExceptionWithReason(int code, String reason){
-            super(code);
-            this.reason = reason;
-        }
-        public String getReason(){
-            return this.reason;
-        }
-    }
+
 
     /************ Class Variables **************/
     protected URL server;
     protected String headerId;
     protected String headerVal;
-    public JSONObject request;
+    protected JSONObject request;
     protected JSONObject response;
     protected HttpsURLConnection conn;
     protected Callback callback;
-//    private String userAgent;
 
 
     /**************** Methods ****************/
@@ -64,14 +54,13 @@ public class PostRequest {
         this.request                = request;
         this.response               = null;
         this.conn                   = null;
-//        this.userAgent              = this.getClass().getPackage().getName();
 
     }
 
 
 
 
-    /** Method          : (Private) send
+    /** Method          : send
      *  Description     : Sends the Post request with the currently set parameters and executes the callback
      * */
     public void send() throws IOException, ParseException, HTTPExceptionWithReason {
@@ -122,7 +111,9 @@ public class PostRequest {
             errorResponse = (JSONObject) pars.parse(response.toString());
             //Disconnect from server
             conn.disconnect();
-            throw new HTTPExceptionWithReason(conn.getResponseCode(), (String)errorResponse.get("error"));
+            throw new HTTPExceptionWithReason((String)errorResponse.get("error"));
+
+            //throw new HTTPExceptionWithReason(conn.getResponseCode(), (String)errorResponse.get("error"));
         }
 
     }

@@ -22,8 +22,8 @@ public class App
             }
             testNode = new ListeningNode(token, axon, debug);
             testNode.connect();
-            testNode2 = new SendingNode(token, axon, debug);
-            testNode2.connect();
+            //testNode2 = new SendingNode(token, axon, debug);
+            //testNode2.connect();
         }catch(Exception e){
             e.printStackTrace();
         }

@@ -12,6 +12,7 @@ import org.json.simple.JSONObject;
  * This Node shows how to subscribe to different Messages
  */
 public class ListeningNode extends Node{
+    String lastError;
 
     /**
      * Constructor
@@ -62,13 +63,18 @@ public class ListeningNode extends Node{
             e.printStackTrace();
         }
     }
-    @Override
-    public void onDisconnected(){
-        System.out.println("I was disconnected!");
-        // DO SOME CLEANUP HERE IF NEEDED
 
+    @Override
+    public void onError(Exception ex){
+        this.lastError = ExceptionHandling.StackTraceToString(ex);
+    }
+    @Override
+    public void onDisconnected(int code, String reason, boolean remote){
+        System.out.println("I was disconnected! with " + Integer.toString(code) + ", " + reason + ", " + Boolean.toString(remote));
+        // DO SOME CLEANUP HERE IF NEEDED
+        System.out.println("Error: " + this.lastError);
         //IF YOU WANT TO RECONNECT CALL THE SUPER onDisconnected()
-        super.onDisconnected();
+        super.onDisconnected( code,  reason,  remote);
     }
 
 

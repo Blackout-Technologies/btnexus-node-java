@@ -14,12 +14,8 @@ import ai.blackout.node.Callback;
 
 public class BTPostRequest extends PostRequest{
 
-    /************ Class Variables **************/
-    private String intent;
-    protected JSONObject params;
 
-
-    /** Constructor     : PostRequest
+    /** Constructor         : PostRequest
      *  @param params       : JSONObject holding the parameters for the REST call
      *  @param intent       : The intent is the Endpoint of the REST call
      *  @param accesstoken  : (String) access token for the respective service
@@ -28,8 +24,6 @@ public class BTPostRequest extends PostRequest{
      **/
     public BTPostRequest(String intent, JSONObject params, String accesstoken, String server, Callback callback ) throws MalformedURLException {
         super("blackout-token", accesstoken , server, getBlackOutRequest(intent, params), callback);
-        this.intent = intent;
-
     }
 
     /** Method          : getBlackOutRequest

@@ -74,7 +74,8 @@ public abstract class Node implements Connector {
      * @param callback The Callback
      */
     public void subscribe(String group, String topic, String name, Callback callback) throws NexusNotConnectedException {
-        nexus.subscribe(group, topic, name, callback);
+        //Make sure to strip strings
+        nexus.subscribe(group.trim(), topic.trim(), name.trim(), callback);
     }
 
     /**
@@ -154,7 +155,7 @@ public abstract class Node implements Connector {
      * If not implemented the Node tries to reconnect
      */
     @Override
-    public void onDisconnected() {
+    public void onDisconnected(int code, String reason, boolean remote) {
         try {
             this.cleanUp();
             this.setUp();
@@ -167,9 +168,18 @@ public abstract class Node implements Connector {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Handles errors - if not implemented just publishes the trace to the error topic
+     */
     @Override
     public void onError(Exception ex){
-        this.nexus.onError(ex);
+        String trace = ExceptionHandling.StackTraceToString(ex);
+        try {
+            publishError(trace);
+        } catch (NexusNotConnectedException e) {
+            e.printStackTrace();
+        }
     }
     @Override
     public void setUp(){

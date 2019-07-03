@@ -9,7 +9,7 @@ import org.json.simple.JSONObject;
 
 
 /**
- * This is  a Class to run callbacks in their own Thread
+ * This is  a Class to run callbacks in their own Thread and send back the response
  */
 public class CallbackExecution implements Runnable {
     private Callback callback;
@@ -17,7 +17,6 @@ public class CallbackExecution implements Runnable {
     private String topic;
     private String funcName;
     private Object params;
-    private boolean defaultParams;
     private String group;
 
     /**
@@ -37,7 +36,6 @@ public class CallbackExecution implements Runnable {
         this.topic = topic;
         this.funcName = funcName;
         this.params = params;
-        this.defaultParams = false;
     }
 
     /**

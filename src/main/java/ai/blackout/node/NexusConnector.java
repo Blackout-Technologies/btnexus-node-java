@@ -105,6 +105,10 @@ public class NexusConnector extends WebSocketClient {
         this.proxy = nexus.getProxy();
         this.setProxy(this.proxy);
     }
+    /**
+     * Getter for isConnected
+     * @return isConnected
+     */
     public boolean isConnected() {
         return this.isConnected;
     }
@@ -278,7 +282,7 @@ public class NexusConnector extends WebSocketClient {
             callback = null;
         }
         if(callback == null){
-            throw new Exception("Can't unsubscribe from non existing Callback!\nChoose one out of: " + this.callbacks.toString());
+            throw new NexusProtocolException("Unsubscribe from " + name, "non existing Callback! Choose one out of: " + this.callbacks.toString());
         }
         // if the only callback on topic -> remove topic from map
         if (this.callbacks.get(group).get(topic).size() == 1){
@@ -427,42 +431,51 @@ public class NexusConnector extends WebSocketClient {
                     onError(ne);
                 }
             }
-
-
-
-            System.out.println("[" + this.parentName + "]: Registered successfully");
+            try {
+                this.publishDebug("Registered successfully");
+            } catch (NexusNotConnectedException e) {
+                e.printStackTrace();
+            }
             this.isRegistered = true;
             this.isConnected = true;
             this.connector.onConnected();
         } else if (intent.equals("registerFailed")) {
-            System.out.println("[" + this.parentName + "]: Register failed with reason: " + msg.get("reason"));
+            onError(new NexusProtocolException("Register", msg.get("reason").toString()));
+            //System.out.println("[" + this.parentName + "]: Register failed with reason: " + msg.get("reason"));
         } else if (intent.equals("subscribeSuccess")) {
-            System.out.println("[" + this.parentName + "]: Subscribed to: " + msg.get("topic"));
+            try {
+                this.publishDebug("Subscribed to: " + msg.get("topic"));
+            } catch (NexusNotConnectedException e) {
+                e.printStackTrace();
+            }
         } else if (intent.equals("subscribeFailed")) {
-            System.out.println("[" + this.parentName + "]: Failed to Subscribed to: " + msg.get("topic"));
+            this.onError(new NexusProtocolException("Subscribe to " +  msg.get("topic").toString(), msg.get("reason").toString()));
         } else if (intent.equals("joinSuccess")) {
-            System.out.println("[" + this.parentName + "]: Joined Group: " + msg.get("groupName"));
+            try {
+                this.publishDebug("Joined Group: " + msg.get("groupName"));
+            } catch (NexusNotConnectedException e) {
+                e.printStackTrace();
+            }
         } else if (intent.equals("joinFailed")) {
-            System.out.println("[" + this.parentName + "]: Failed to join Group: " + msg.get("groupName"));
+            this.onError(new NexusProtocolException("Join " + msg.get("groupName"), msg.get("reason").toString()));
         } else if (intent.equals("leaveSuccess")) {
-            System.out.println("[" + this.parentName + "]: left Group: " + msg.get("groupName"));
+            try {
+                this.publishDebug("Left Group: " + msg.get("groupName"));
+            } catch (NexusNotConnectedException e) {
+                e.printStackTrace();
+            }
         } else if (intent.equals("leaveFailed")) {
-            System.out.println("[" + this.parentName + "]: Failed to leave Group: " + msg.get("groupName"));
+            this.onError(new NexusProtocolException("Leave Group " + msg.get("groupName"), msg.get("reason").toString()));
         } else if (intent.equals("unsubscribeSuccess")) {
-            System.out.println("[" + this.parentName + "]: unsubscribed from topic: " + msg.get("topic"));
+            try {
+                this.publishDebug("Unsubscribed from topic: " + msg.get("topic"));
+            } catch (NexusNotConnectedException e) {
+                e.printStackTrace();
+            }
         } else if (intent.equals("unsubscribeFailed")) {
-            System.out.println("[" + this.parentName + "]: Failed to unsubscribed from topic: " + msg.get("topic"));
+            onError(new NexusProtocolException("Unsubscribe from " + msg.get("topic"), msg.get("reason").toString()));
         } else {
             if (this.isRegistered) {
-//                JSONParser parser = new JSONParser();
-//                JSONObject json = null;
-//                try {
-//                    json = (JSONObject) parser.parse(message);
-//                } catch (ParseException e) {
-//                    this.onError(e);
-//                }
-//                callbackManager(new Message(json));
-                //System.out.println(message);
                 callbackManager(msg);
             }
         }
@@ -475,11 +488,11 @@ public class NexusConnector extends WebSocketClient {
      */
     public void publishDebug(String debug) throws NexusNotConnectedException {
         if (this.debug) {
-            System.out.println("[" + this.parentName + "]: Debug: " +debug);
             Message debMsg = new Message("publish");
             debMsg.put("topic", this.debugTopic);
             JSONObject debugObj = new JSONObject();
-            String className = this.getClass().getName();
+            String className = this.parentName;
+            System.out.println("[" + className + "]: Debug: " + debug);
             debugObj.put("debug", className + ": " + debug);
             debMsg.put("payload", debugObj);
             publishMessage(debMsg);
@@ -495,7 +508,8 @@ public class NexusConnector extends WebSocketClient {
         Message warnMsg = new Message("publish");
         warnMsg.put("topic", this.warningTopic);
         JSONObject warnObj = new JSONObject();
-        String className = this.getClass().getName();
+        String className = this.parentName;
+        System.out.println("[" + className + "]: Warning: " + warning);
         warnObj.put("warning", className + ": " + warning);
         warnMsg.put("payload", warnObj);
         publishMessage(warnMsg);
@@ -510,7 +524,8 @@ public class NexusConnector extends WebSocketClient {
         Message errorMsg = new Message("publish");
         errorMsg.put("topic", this.errorTopic);
         JSONObject errorObj = new JSONObject();
-        String className = this.getClass().getName();
+        String className = this.parentName;
+        System.out.println("[" + className + "]: Error: " + error);
         errorObj.put("error", className + ": " + error);
         errorMsg.put("payload", errorObj);
         publishMessage(errorMsg);
@@ -523,11 +538,12 @@ public class NexusConnector extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         this.isConnected = false;
-        System.out.println("[" + this.parentName + "]: Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: " + reason);
-        this.connector.onDisconnected();
-        //if (this.autoReconnect) {
-        //    this.autoReconnectCallback.run();
-        //}
+        try {
+            this.publishDebug( "Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: " + reason);
+        } catch (NexusNotConnectedException e) {
+            e.printStackTrace();
+        }
+        this.connector.onDisconnected( code,  reason,  remote);
     }
 
     /**
@@ -537,14 +553,7 @@ public class NexusConnector extends WebSocketClient {
      */
     @Override
     public void onError(Exception ex) {
-        String trace = ExceptionHandling.StackTraceToString(ex);
-        System.out.println("[" + this.parentName + "]: Error: " + trace);
-        try {
-            publishError("[" + this.parentName + "]: Error: " + trace);
-        } catch (NexusNotConnectedException e) {
-            e.printStackTrace();
-        }
-
+        this.connector.onError(ex);
     }
 
 }
