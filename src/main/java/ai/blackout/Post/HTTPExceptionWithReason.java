@@ -1,6 +1,6 @@
 package ai.blackout.Post;
 
-import javax.xml.ws.http.HTTPException;
+//import javax.xml.ws.http.HTTPException;
 
 /** Class       : HTTPExceptionWithReason
  *  Description : Extends the HTTPException with a Reason

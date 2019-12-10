@@ -2,6 +2,7 @@
 package ai.blackout.node;
 
 //System imports
+import java.util.HashMap;
 import java.util.UUID;
 
 //3rd party imports
@@ -44,8 +45,11 @@ public class Message extends JSONObject{
      * @param json A {@link JSONObject} which contains a Message
      */
     public Message(JSONObject json){
-        super(json);
+//        this = (Message)json;
+//        super(json); //TODO: supersuperConstructor? can I cast JSONObject to HashMap? probaly not...The other option is to go over every entry and put in the new object...is shallow :/
+        this.putAll(json);
     }
+
 
     /**
      * Adds a Authentification to the Message
