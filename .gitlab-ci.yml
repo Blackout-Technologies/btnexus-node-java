@@ -1,0 +1,30 @@
+image: python:3.6-alpine
+#this needs to be a different image with gradle or is it possible without, because it is in the project??
+
+stages:
+  - build
+  - test
+  - deploy
+
+build_package:
+  stage: build
+  script:
+    - gradle build
+
+run_tests:
+  stage: test
+  script:
+    - gradle build
+    #- run tests ... cd tests
+
+
+deploy_production:
+  stage: deploy
+  variables:
+    USERNAME: $PRODUCTION_USERNAME
+    PASSWORD: $PRODUCTION_PASSWORD
+  script:
+    - gradle build
+    - gradle publish
+  only:
+    - master
