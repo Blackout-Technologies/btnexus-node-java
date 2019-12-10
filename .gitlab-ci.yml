@@ -1,5 +1,4 @@
-image: python:3.6-alpine
-#this needs to be a different image with gradle or is it possible without, because it is in the project?
+image: gradle:4.7.0-jdk8-alpine
 
 stages:
   - build
