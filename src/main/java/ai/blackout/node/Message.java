@@ -2,6 +2,7 @@
 package ai.blackout.node;
 
 //System imports
+import java.util.HashMap;
 import java.util.UUID;
 
 //3rd party imports
@@ -14,8 +15,8 @@ import org.json.simple.JSONObject;
  */
 public class Message extends JSONObject{
 
-    boolean valid = false;
-    String version = "4.2.0";
+    private boolean valid = false;
+    private String version = "4.2.0";
 
     /**
      * Construtor for a Message
@@ -26,7 +27,7 @@ public class Message extends JSONObject{
         JSONObject api = new JSONObject();
         api.put("version", this.version);
         Long ts = System.currentTimeMillis();
-        Float tsSec = ts.floatValue() / 1000; //TODO: is in scinetific format---maybe it needs to be changed
+        Float tsSec = ts.floatValue() / 1000;
         api.put("time",tsSec);
         api.put("intent", intent);
         UUID id = UUID.randomUUID();
@@ -37,14 +38,18 @@ public class Message extends JSONObject{
         this.valid = true;
 
     }
+
     /**
      * Construtor for a Message
      *
      * @param json A {@link JSONObject} which contains a Message
      */
     public Message(JSONObject json){
-        super(json);
+//        this = (Message)json;
+//        super(json); //TODO: supersuperConstructor? can I cast JSONObject to HashMap? probaly not...The other option is to go over every entry and put in the new object...is shallow :/
+        this.putAll(json);
     }
+
 
     /**
      * Adds a Authentification to the Message
@@ -61,6 +66,12 @@ public class Message extends JSONObject{
         api.put("auth", authHeader);
     }
 
+    /**
+     * Checks if a Message is valid or not.
+     */
+    public boolean isValid(){
+        return this.valid;
+    }
     /**
      * This method validates a Message
      * Considering different protocol versions this method makes sure messages

@@ -1,7 +1,9 @@
 package ai.blackout.node;
 
 //System imports
+import java.net.Proxy;
 import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 
 //3rd party imports
 import org.json.simple.JSONObject;
@@ -18,12 +20,50 @@ public abstract class Node implements Connector {
 
     /**
      * Constructor for the Node
+     * @param token Token for the authentification with the axon
+     * @param path URL to axon
+     * @param debug should debug messages be sent
+     * @param proxy the proxy which should be used for the connection
      */
-    public Node() throws URISyntaxException {
-        this.nexus = new NexusConnector(this);
-        this.nodeName = this.nexus.getParentName();
+    public Node(String token, String path, boolean debug, Proxy proxy) throws URISyntaxException {
+        Class<?> enclosingClass = this.getClass().getEnclosingClass();
+        if (enclosingClass != null) {
+            this.nodeName = enclosingClass.getName();
+        } else {
+            this.nodeName = this.getClass().getName();
+        }
+        if (!path.substring(path.length() - 1).equals("/")){
+            path = path + "/";
+        }
+        String fullPath = path + this.nodeName;
+        this.nexus = new NexusConnector(this, token, fullPath, debug, proxy);
     }
 
+    /**
+     * Constructor for the Node
+     * @param token Token for the authentification with the axon
+     * @param path URL to axon
+     * @param debug should debug messages be sent
+     */
+    public Node(String token, String path, boolean debug) throws URISyntaxException {
+ //       System.setProperty("java.net.useSystemProxies", "true");
+        Class<?> enclosingClass = this.getClass().getEnclosingClass();
+        if (enclosingClass != null) {
+            this.nodeName = enclosingClass.getName();
+        } else {
+            this.nodeName = this.getClass().getName();
+        }
+        if (!path.substring(path.length() - 1).equals("/")){
+            path = path + "/";
+        }
+        String fullPath = path + this.nodeName;
+        this.nexus = new NexusConnector(this, token, fullPath, debug);
+    }
+    
+
+    public boolean isConnected(){
+        return this.nexus.isConnected();
+    }
 
     /**
      * Method to add a callback to a specific topic and function name.
@@ -34,7 +74,18 @@ public abstract class Node implements Connector {
      * @param callback The Callback
      */
     public void subscribe(String group, String topic, String name, Callback callback) throws NexusNotConnectedException {
-        nexus.subscribe(group, topic, name, callback);
+        //Make sure to strip strings
+        nexus.subscribe(group.trim(), topic.trim(), name.trim(), callback);
+    }
+
+    /**
+     * Method to remove a callback from a specific topic and function name.
+     * @param group    The group on which the callback should react
+     * @param topic    The topic on which the callback should react
+     * @param name     The function name within the message the callback should react on
+     */
+    public void unsubscribe(String group, String topic, String name) throws Exception {
+        this.nexus.unsubscribe(group, topic, name);
     }
 
     /**
@@ -95,6 +146,47 @@ public abstract class Node implements Connector {
      * Establish the connection to the nexus.
      */
     public void connect() {
+        this.setUp();
         nexus.connect();
+    }
+
+    /**
+     * This will be executed after a the Node is disconnected from the btNexus
+     * If not implemented the Node tries to reconnect
+     */
+    @Override
+    public void onDisconnected(int code, String reason, boolean remote) {
+        try {
+            this.cleanUp();
+            this.setUp();
+            this.nexus = new NexusConnector(this.nexus);
+            TimeUnit.SECONDS.sleep(1);
+            this.nexus.connect();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Handles errors - if not implemented just publishes the trace to the error topic
+     */
+    @Override
+    public void onError(Exception ex){
+        String trace = ExceptionHandling.StackTraceToString(ex);
+        try {
+            publishError(trace);
+        } catch (NexusNotConnectedException e) {
+            e.printStackTrace();
+        }
+    }
+    @Override
+    public void setUp(){
+        System.out.println("[" + this.nodeName + "] setUp");
+    }
+    @Override
+    public void cleanUp(){
+        System.out.println("[" + this.nodeName + "] cleanUp");
     }
 }
