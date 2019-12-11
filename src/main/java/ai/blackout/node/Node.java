@@ -46,6 +46,7 @@ public abstract class Node implements Connector {
      * @param debug should debug messages be sent
      */
     public Node(String token, String path, boolean debug) throws URISyntaxException {
+        // TODO: 11.12.19 token and path cannot be Null! make meaningfull exception 
  //       System.setProperty("java.net.useSystemProxies", "true");
         Class<?> enclosingClass = this.getClass().getEnclosingClass();
         if (enclosingClass != null) {

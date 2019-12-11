@@ -23,7 +23,7 @@ deploy_production:
     USERNAME: $PRODUCTION_USERNAME
     PASSWORD: $PRODUCTION_PASSWORD
   script:
-    - gradle build
-    - gradle publish
+    - ./gradlew build
+    - ./gradlew publish
   only:
     - master
