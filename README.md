@@ -48,7 +48,6 @@ The `btnexus-node-java` package is hosted on GitHub Packages.
 You can use the packages with [Maven](https://help.github.com/en/github/managing-packages-with-github-packages/configuring-apache-maven-for-use-with-github-packages#installing-a-package) or [Gradle](https://help.github.com/en/github/managing-packages-with-github-packages/configuring-gradle-for-use-with-github-packages#installing-a-package).
 
 
-
 # Example Nodes
 Following you will see an example of a Node which sends out the current minute
 and second every five seconds.
