@@ -44,39 +44,10 @@ Every `Callback` returns a `Message` to the `btNexus` with the name of the origi
 * Owner of a btNexus instance or a btNexus account
 
 # Install btnexus-node-java
+The `btnexus-node-java` package is hosted on GitHub Packages.
+You can use the packages with [Maven](https://help.github.com/en/github/managing-packages-with-github-packages/configuring-apache-maven-for-use-with-github-packages#installing-a-package) or [Gradle](https://help.github.com/en/github/managing-packages-with-github-packages/configuring-gradle-for-use-with-github-packages#installing-a-package).
 
-Clone the Repository and import it in intellij (https://www.jetbrains.com/idea/)
-When you open the projects folder with intellij it asks you to link it to your gradle.
-You can also open the build.gradle file. Intellij will ask you if you want to open `as file` or `as project`.
-Choose `as project` here.
-For the following question on the gradle settings choose the default settings(should be `use default gradle wrapper`).
-To test if everything went well run the App under the test folder. (Right click on App.java -> Run App.main())
-This should trigger the examples implemented in the test folder.
-To run this test you need to set up the environment variables `AXON_HOST`, `TOKEN` and if you want a more verbose output `NEXUS_DEBUG`
-* `AXON_HOST` is the url to your instance e.g. `company1.btnexus.ai/`
-* `TOKEN` is the Access token
-* If `NEXUS_DEBUG` is set to anything you will see a more verbose output.
 
-This test should show a output like this:
-```
-Starting tests!
-[ListeningNode] setUp
-[SendingNode] setUp
-[ListeningNode]: opened connection with DIRECT
-[SendingNode]: opened connection with DIRECT
-[ListeningNode]: Registered successfully
-[SendingNode]: Registered successfully
-[ListeningNode]: Joined Group: exampleGroup
-[SendingNode]: Joined Group: exampleGroup
-[SendingNode]: Subscribed to: ai.blackout.example
-[ListeningNode]: Subscribed to: ai.blackout.example
-[ListeningNode]: 50 || 15
-[SendingNode]: 50:15
-```
-If the test went well you can build a fatJAR with gradle.
-Open the Gradle view(on the right side) and under Tasks -> shadow run the task `shadowJar`
-After these steps there should be a fatJAR in `btnexus-node-java/build/libs`.
-This fatJAR can be included in your own Applications.
 
 # Example Nodes
 Following you will see an example of a Node which sends out the current minute
