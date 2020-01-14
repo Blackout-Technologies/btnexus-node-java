@@ -92,6 +92,7 @@ public class PostRequest {
             }
             in.close();
             //crate JSONObject from String response
+//            System.out.println("[RESPONSE]: " + response); // TODO: 12.12.19 REMOVE
             JSONParser pars = new JSONParser();
             this.response = (JSONObject) pars.parse(response.toString());
             callback.apply(this.response);
@@ -106,6 +107,7 @@ public class PostRequest {
             }
             in.close();
             //crate JSONObject from String response
+//            System.out.println("[RESPONSE]: " + response); // TODO: 12.12.19 REMOVE
             JSONParser pars = new JSONParser();
             JSONObject errorResponse;
             errorResponse = (JSONObject) pars.parse(response.toString());

@@ -25,19 +25,19 @@ public abstract class Node implements Connector {
      * @param debug should debug messages be sent
      * @param proxy the proxy which should be used for the connection
      */
-    public Node(String token, String path, boolean debug, Proxy proxy) throws URISyntaxException {
-        Class<?> enclosingClass = this.getClass().getEnclosingClass();
-        if (enclosingClass != null) {
-            this.nodeName = enclosingClass.getName();
-        } else {
-            this.nodeName = this.getClass().getName();
-        }
-        if (!path.substring(path.length() - 1).equals("/")){
-            path = path + "/";
-        }
-        String fullPath = path + this.nodeName;
-        this.nexus = new NexusConnector(this, token, fullPath, debug, proxy);
-    }
+//    public Node(String token, String path, boolean debug, Proxy proxy) throws URISyntaxException {
+//        Class<?> enclosingClass = this.getClass().getEnclosingClass();
+//        if (enclosingClass != null) {
+//            this.nodeName = enclosingClass.getName();
+//        } else {
+//            this.nodeName = this.getClass().getName();
+//        }
+//        if (!path.substring(path.length() - 1).equals("/")){
+//            path = path + "/";
+//        }
+//        String fullPath = path + this.nodeName;
+//        this.nexus = new NexusConnector(this, token, fullPath, debug, proxy);
+//    }
 
     /**
      * Constructor for the Node
@@ -57,8 +57,10 @@ public abstract class Node implements Connector {
         if (!path.substring(path.length() - 1).equals("/")){
             path = path + "/";
         }
-        String fullPath = path + this.nodeName;
-        this.nexus = new NexusConnector(this, token, fullPath, debug);
+//        path = path + this.nodeName; // todo: this is deactivated for now because it seems to be only working without the appended nodeName
+        System.out.println("NODE: AXON: " + path);
+
+        this.nexus = new NexusConnector(this, token, path, debug);
     }
     
 
@@ -157,17 +159,18 @@ public abstract class Node implements Connector {
      */
     @Override
     public void onDisconnected(int code, String reason, boolean remote) {
-        try {
-            this.cleanUp();
-            this.setUp();
-            this.nexus = new NexusConnector(this.nexus);
-            TimeUnit.SECONDS.sleep(1);
-            this.nexus.connect();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        // TODO: 13.01.20 is the reconnect working automatically?
+//        try {
+//            this.cleanUp();
+//            this.setUp();
+//            this.nexus = new NexusConnector(this.nexus);
+//            TimeUnit.SECONDS.sleep(1);
+//            this.nexus.connect();
+//        } catch (URISyntaxException e) {
+//            e.printStackTrace();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
     }
 
     /**

@@ -26,9 +26,9 @@ public class ListeningNode extends Node{
      * Constructor
      * @throws URISyntaxException
      */
-    public ListeningNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
-        super( token,  axonURL,  debug, proxy);
-    }
+//    public ListeningNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+//        super( token,  axonURL,  debug, proxy);
+//    }
 
     /**
      * Printing the time from the incoming message

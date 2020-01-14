@@ -6,21 +6,25 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 //3rd party imports
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
-import org.java_websocket.exceptions.WebsocketNotConnectedException;
+//import org.java_websocket.client.WebSocketClient;
+//import org.java_websocket.handshake.ServerHandshake;
+//import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
+import io.socket.engineio.client.transports.WebSocket;
 
 
 /**
  * The NexusConnector implements the communication with messages that obey the Blackout protocol.
  */
-public class NexusConnector extends WebSocketClient {
+public class NexusConnector {
 
-    private String protocolVersion = "4.2";
+    private String protocolVersion = "5.0";
     private UUID nodeID;
     private Map<String, Map<String, Map<String, Callback>>> callbacks;
     private boolean isRegistered = false;
@@ -35,6 +39,7 @@ public class NexusConnector extends WebSocketClient {
     private Connector parent;
     private String parentName;
     private Proxy proxy;
+    private Socket socket;
 
     /**
      * Constructor for the NexusConnector.
@@ -45,7 +50,10 @@ public class NexusConnector extends WebSocketClient {
      * @param debug should debug messages be sent
      */
     public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug) throws URISyntaxException {
-        super(getNexusURI(axonURL));
+        System.out.println("NEXUSCONNECTOR: AXON: " + axonURL);
+        IO.Options opts = new IO.Options();
+        opts.transports = new String[]{ WebSocket.NAME};
+        this.socket = IO.socket("https://" + axonURL, opts);
         this.token = token;
         this.axon = axonURL;
         this.debug = debug;
@@ -60,15 +68,42 @@ public class NexusConnector extends WebSocketClient {
         this.connector = connectCallback;
         this.nodeID = UUID.randomUUID();
         this.callbacks = new HashMap<String, Map<String, Map<String, Callback>>>();
-        //GET SYSTEMPROXY
-        try {
-            List<Proxy> l = ProxySelector.getDefault().select(getNexusURI(this.axon));
-            this.proxy = l.get(0);
-            this.setProxy(this.proxy);
-        }
-        catch (URISyntaxException e) {
-            this.onError(e);
-        }
+        //GET SYSTEMPROXY    todo: check support for proxies: https://github.com/socketio/socket.io-client-java/issues/50#issuecomment-319267638
+//        try {
+//            List<Proxy> l = ProxySelector.getDefault().select(getNexusURI(this.axon));
+//            this.proxy = l.get(0);
+//            this.setProxy(this.proxy);
+//        }
+//        catch (URISyntaxException e) {
+//            this.onError(e);
+//        }
+
+        this.socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+
+                @Override
+                public void call(Object... args) {
+                    NexusConnector.this.isConnected = true;
+                    System.out.println("Connected!");
+                }
+
+            }).on("btnexus-registration", new Emitter.Listener() {
+
+                @Override
+                public void call(Object... args) {
+                    JSONObject obj = (JSONObject)args[0];
+                    System.out.println("btnexus-registration: " + obj);
+                }
+
+            }).on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
+
+                @Override
+                public void call(Object... args) {
+                    System.out.println("Disconnected!");
+                }
+
+            });
+        System.out.println("BEFORE CONNECT");
+//        this.socket.connect();
 
     }
 
@@ -81,30 +116,12 @@ public class NexusConnector extends WebSocketClient {
      * @param debug should debug messages be sent
      * @param proxy the proxy which should be used for the connection
      */
-    public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
-        this( connectCallback,  token,  axonURL,  debug);
-        this.proxy = proxy;
-        this.setProxy(this.proxy);
-    }
+//    public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+//        this( connectCallback,  token,  axonURL,  debug);
+//        this.proxy = proxy;
+//        this.setProxy(this.proxy); // TODO: 13.01.20 is there a proxy option?
+//    }
 
-    /**
-     * CopyConstructor for the NexusConnector
-     * @param nexus the NexusConnector to be copied
-     * @throws URISyntaxException
-     */
-    public NexusConnector(NexusConnector nexus) throws URISyntaxException {
-        super(getNexusURI(nexus.getAxon()));
-        this.token = nexus.getToken();
-        this.axon = nexus.getAxon();
-        this.debug = nexus.getDebug();
-        this.parent = nexus.getParent();
-        this.parentName = nexus.getParentName();
-        this.connector = nexus.getConnector();
-        this.nodeID = nexus.getNodeID();
-        this.callbacks = new HashMap<String, Map<String, Map<String, Callback>>>();// callbacks cannot be copied because they are not subscribed - a copied nexusConnector is not connected yet.
-        this.proxy = nexus.getProxy();
-        this.setProxy(this.proxy);
-    }
     /**
      * Getter for isConnected
      * @return isConnected
@@ -308,24 +325,24 @@ public class NexusConnector extends WebSocketClient {
      * Here the registering process is triggered.
      * {@inheritDoc}
      */
-    @Override
-    public void onOpen(ServerHandshake handshakedata) {
-        try {
-            Message msg = new Message("register");
-            msg.put("token", this.token);
-            msg.put("host", InetAddress.getLocalHost().getHostName());
-            msg.put("ip", "127.0.0.1");
-            msg.put("id", this.nodeID.toString());
-            JSONObject node = new JSONObject();
-            msg.put("node", node);
-            send(msg.toString());
-            System.out.println("[" + this.parentName + "]: opened connection with " + this.proxy);
-
-        } catch (UnknownHostException e) {
-            this.onError(e);
-        }
-
-    }
+//    @Override
+//    public void onOpen(ServerHandshake handshakedata) {
+//        try {
+//            Message msg = new Message("register");
+//            msg.put("token", this.token);
+//            msg.put("host", InetAddress.getLocalHost().getHostName());
+//            msg.put("ip", "127.0.0.1");
+//            msg.put("id", this.nodeID.toString());
+//            JSONObject node = new JSONObject();
+//            msg.put("node", node);
+//            send(msg.toString());
+//            System.out.println("[" + this.parentName + "]: opened connection with " + this.proxy);
+//
+//        } catch (UnknownHostException e) {
+//            this.onError(e);
+//        }
+//
+//    }
 
     /**
      * Method to publish a {@link Message} to the nexus.
@@ -337,8 +354,8 @@ public class NexusConnector extends WebSocketClient {
     public void publishMessage(Message msg) throws NexusNotConnectedException {
         msg.put("nodeId", this.nodeID.toString());
         try {
-            send(msg.toString());
-        } catch (WebsocketNotConnectedException e) {
+            this.socket.send(msg.toString()); // TODO: 13.01.20 is send using emit('message')?
+        } catch (Exception e) { // TODO: 14.01.20 check which connections should be used here. 
             throw new NexusNotConnectedException("The connection to the nexus broke down!");
         }
     }
@@ -396,90 +413,90 @@ public class NexusConnector extends WebSocketClient {
      * The corrosponding callback to the Message will be executed.
      * {@inheritDoc}
      */
-    @Override
-    public void onMessage(String message) {
-        Message msg;
-        try {
-            JSONParser parser = new JSONParser();
-            JSONObject json = (JSONObject) parser.parse(message);
-            msg = new Message(json);
-        } catch (ParseException e) {
-            this.onError(e);
-            return;
-        }
-        JSONObject api = (JSONObject) msg.get("api");
-        String intent = (String) api.get("intent");
-        if (intent.equals("registerSuccess")) {
-            //Check Version here
-            String [] parts = this.protocolVersion.split(Pattern.quote("."));
-            int major = Integer.parseInt(parts[0]);
-            int minor = Integer.parseInt(parts[1]);
-            String msgVersion = (String)api.get("version");
-            parts = msgVersion.split(Pattern.quote("."));
-            int msgMajor = Integer.parseInt(parts[0]);
-            int msgMinor = Integer.parseInt(parts[1]);
-
-            if(major > msgMajor) {
-                onClose(-1, "The Axon you are trying to connect to is no longer supported! Major Version must be greater than " + major + " but is " + msgMajor, false);
-                return;
-            }
-            if (major == msgMajor && minor > msgMinor){
-                    //info minor is smaller
-                try {
-                    publishDebug("Minor Version missmatch");
-                }catch (NexusNotConnectedException ne){
-                    onError(ne);
-                }
-            }
-            try {
-                this.publishDebug("Registered successfully");
-            } catch (NexusNotConnectedException e) {
-                e.printStackTrace();
-            }
-            this.isRegistered = true;
-            this.isConnected = true;
-            this.connector.onConnected();
-        } else if (intent.equals("registerFailed")) {
-            onError(new NexusProtocolException("Register", msg.get("reason").toString()));
-            //System.out.println("[" + this.parentName + "]: Register failed with reason: " + msg.get("reason"));
-        } else if (intent.equals("subscribeSuccess")) {
-            try {
-                this.publishDebug("Subscribed to: " + msg.get("topic"));
-            } catch (NexusNotConnectedException e) {
-                e.printStackTrace();
-            }
-        } else if (intent.equals("subscribeFailed")) {
-            this.onError(new NexusProtocolException("Subscribe to " +  msg.get("topic").toString(), msg.get("reason").toString()));
-        } else if (intent.equals("joinSuccess")) {
-            try {
-                this.publishDebug("Joined Group: " + msg.get("groupName"));
-            } catch (NexusNotConnectedException e) {
-                e.printStackTrace();
-            }
-        } else if (intent.equals("joinFailed")) {
-            this.onError(new NexusProtocolException("Join " + msg.get("groupName"), msg.get("reason").toString()));
-        } else if (intent.equals("leaveSuccess")) {
-            try {
-                this.publishDebug("Left Group: " + msg.get("groupName"));
-            } catch (NexusNotConnectedException e) {
-                e.printStackTrace();
-            }
-        } else if (intent.equals("leaveFailed")) {
-            this.onError(new NexusProtocolException("Leave Group " + msg.get("groupName"), msg.get("reason").toString()));
-        } else if (intent.equals("unsubscribeSuccess")) {
-            try {
-                this.publishDebug("Unsubscribed from topic: " + msg.get("topic"));
-            } catch (NexusNotConnectedException e) {
-                e.printStackTrace();
-            }
-        } else if (intent.equals("unsubscribeFailed")) {
-            onError(new NexusProtocolException("Unsubscribe from " + msg.get("topic"), msg.get("reason").toString()));
-        } else {
-            if (this.isRegistered) {
-                callbackManager(msg);
-            }
-        }
-    }
+//    @Override
+//    public void onMessage(String message) {
+//        Message msg;
+//        try {
+//            JSONParser parser = new JSONParser();
+//            JSONObject json = (JSONObject) parser.parse(message);
+//            msg = new Message(json);
+//        } catch (ParseException e) {
+//            this.onError(e);
+//            return;
+//        }
+//        JSONObject api = (JSONObject) msg.get("api");
+//        String intent = (String) api.get("intent");
+//        if (intent.equals("registerSuccess")) {
+//            //Check Version here
+//            String [] parts = this.protocolVersion.split(Pattern.quote("."));
+//            int major = Integer.parseInt(parts[0]);
+//            int minor = Integer.parseInt(parts[1]);
+//            String msgVersion = (String)api.get("version");
+//            parts = msgVersion.split(Pattern.quote("."));
+//            int msgMajor = Integer.parseInt(parts[0]);
+//            int msgMinor = Integer.parseInt(parts[1]);
+//
+//            if(major > msgMajor) {
+//                onClose(-1, "The Axon you are trying to connect to is no longer supported! Major Version must be greater than " + major + " but is " + msgMajor, false);
+//                return;
+//            }
+//            if (major == msgMajor && minor > msgMinor){
+//                    //info minor is smaller
+//                try {
+//                    publishDebug("Minor Version missmatch");
+//                }catch (NexusNotConnectedException ne){
+//                    onError(ne);
+//                }
+//            }
+//            try {
+//                this.publishDebug("Registered successfully");
+//            } catch (NexusNotConnectedException e) {
+//                e.printStackTrace();
+//            }
+//            this.isRegistered = true;
+//            this.isConnected = true;
+//            this.connector.onConnected();
+//        } else if (intent.equals("registerFailed")) {
+//            onError(new NexusProtocolException("Register", msg.get("reason").toString()));
+//            //System.out.println("[" + this.parentName + "]: Register failed with reason: " + msg.get("reason"));
+//        } else if (intent.equals("subscribeSuccess")) {
+//            try {
+//                this.publishDebug("Subscribed to: " + msg.get("topic"));
+//            } catch (NexusNotConnectedException e) {
+//                e.printStackTrace();
+//            }
+//        } else if (intent.equals("subscribeFailed")) {
+//            this.onError(new NexusProtocolException("Subscribe to " +  msg.get("topic").toString(), msg.get("reason").toString()));
+//        } else if (intent.equals("joinSuccess")) {
+//            try {
+//                this.publishDebug("Joined Group: " + msg.get("groupName"));
+//            } catch (NexusNotConnectedException e) {
+//                e.printStackTrace();
+//            }
+//        } else if (intent.equals("joinFailed")) {
+//            this.onError(new NexusProtocolException("Join " + msg.get("groupName"), msg.get("reason").toString()));
+//        } else if (intent.equals("leaveSuccess")) {
+//            try {
+//                this.publishDebug("Left Group: " + msg.get("groupName"));
+//            } catch (NexusNotConnectedException e) {
+//                e.printStackTrace();
+//            }
+//        } else if (intent.equals("leaveFailed")) {
+//            this.onError(new NexusProtocolException("Leave Group " + msg.get("groupName"), msg.get("reason").toString()));
+//        } else if (intent.equals("unsubscribeSuccess")) {
+//            try {
+//                this.publishDebug("Unsubscribed from topic: " + msg.get("topic"));
+//            } catch (NexusNotConnectedException e) {
+//                e.printStackTrace();
+//            }
+//        } else if (intent.equals("unsubscribeFailed")) {
+//            onError(new NexusProtocolException("Unsubscribe from " + msg.get("topic"), msg.get("reason").toString()));
+//        } else {
+//            if (this.isRegistered) {
+//                callbackManager(msg);
+//            }
+//        }
+//    }
 
     /**
      * Method to publish a {@link Message} to the nexus on the debug topic.
@@ -530,28 +547,32 @@ public class NexusConnector extends WebSocketClient {
         errorMsg.put("payload", errorObj);
         publishMessage(errorMsg);
     }
+    public void connect(){
+        System.out.println("Trying to connect");
+        this.socket.connect();
+    }
 
     /**
      * Will be triggered if the connection is closed.
      * {@inheritDoc}
      */
-    @Override
-    public void onClose(int code, String reason, boolean remote) {
-        this.isConnected = false;
-        try {
-            this.publishDebug( "Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: " + reason);
-        } catch (NexusNotConnectedException e) {
-            e.printStackTrace();
-        }
-        this.connector.onDisconnected( code,  reason,  remote);
-    }
+//    @Override
+//    public void onClose(int code, String reason, boolean remote) {
+//        this.isConnected = false;
+//        try {
+//            this.publishDebug( "Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: " + reason);
+//        } catch (NexusNotConnectedException e) {
+//            e.printStackTrace();
+//        }
+//        this.connector.onDisconnected( code,  reason,  remote);
+//    }
 
     /**
      * Will be triggered if an error occurs.
      * if the error is fatal then onClose will be called additionally
      * {@inheritDoc}
      */
-    @Override
+//    @Override
     public void onError(Exception ex) {
         this.connector.onError(ex);
     }

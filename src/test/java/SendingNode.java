@@ -28,9 +28,9 @@ public class SendingNode extends Node{
      * Constructor
      * @throws URISyntaxException
      */
-    public SendingNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
-        super( token,  axonURL,  debug, proxy);
-    }
+//    public SendingNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+//        super( token,  axonURL,  debug, proxy);
+//    }
 
     /**
      * Setting up everything. This will be called everytime before the connection is established
