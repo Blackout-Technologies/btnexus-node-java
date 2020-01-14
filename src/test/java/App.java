@@ -13,7 +13,7 @@ import io.socket.engineio.client.transports.WebSocket;
 
 /**
  * ShowCase on how to implement your own Nodes
- * TOKEN=JbUc0AAsw2ml29KWpJQzFeNT0J7CLgFGoQSdDSe4TBm;AXON_HOST=demo2.btnexus.ai;PERSONALITYID=7098cff5-f3c7-373d-b361-5730feae614b;INTEGRATIONID=d7463460-fe35-4322-9f13-52a39f264a0f;NEXUS_DEBUG=True;LANG=en-US
+ * TOKEN=JbUc0AAsw2ml29KWpJQzFeNT0J7CLgFGoQSdDSe4TBm;AXON_HOST=dev5.btnexus.ai;PERSONALITYID=7098cff5-f3c7-373d-b361-5730feae614b;INTEGRATIONID=d7463460-fe35-4322-9f13-52a39f264a0f;NEXUS_DEBUG=True;LANG=en-US
  */
 public class App
 {
