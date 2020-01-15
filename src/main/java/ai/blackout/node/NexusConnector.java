@@ -35,7 +35,6 @@ public class NexusConnector {
     private String axon;
     private Connector parent;
     private String parentName;
-    private Proxy proxy;
     private Socket socket;
     private boolean remote;
     private String reason;
@@ -60,35 +59,10 @@ public class NexusConnector {
         } else {
             this.parentName = this.parent.getClass().getName();
         }
-
-//        this.nodeID = UUID.randomUUID();
         this.callbacks = new HashMap<String, Map<String, Map<String, Callback>>>();
-        //GET SYSTEMPROXY    todo: check support for proxies: https://github.com/socketio/socket.io-client-java/issues/50#issuecomment-319267638
-//        try {
-//            List<Proxy> l = ProxySelector.getDefault().select(getNexusURI(this.axon));
-//            this.proxy = l.get(0);
-//            this.setProxy(this.proxy);
-//        }
-//        catch (URISyntaxException e) {
-//            this.onError(e);
-//        }
 
 
-    }
 
-    /**
-     * Constructor for the NexusConnector.
-     *
-     * @param connectCallback the callback which is triggered if connected to the nexus
-     * @param token Token for the authentification with the axon
-     * @param axonURL URL to axon
-     * @param debug should debug messages be sent
-     * @param proxy the proxy which should be used for the connection
-     */
-    public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
-        this( connectCallback,  token,  axonURL,  debug);
-        this.proxy = proxy;
-//        this.setProxy(this.proxy); // TODO: 13.01.20 is there a proxy option?
     }
 
     /**
@@ -98,15 +72,6 @@ public class NexusConnector {
      */
     public boolean isConnected() {
         return this.isConnected;
-    }
-
-    /**
-     * Getter for proxy
-     *
-     * @return proxy
-     */
-    private Proxy getProxy() {
-        return this.proxy;
     }
 
     /**

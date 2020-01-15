@@ -7,8 +7,8 @@
 |Author|Adrian Lubitz|
 |Author|Marc Fiedler|
 |Email|dev@blackout.ai|
-|Latest stable version|3.1.0|
-|Required Axon versions| >= 3.0.0|
+|Latest stable version|4.0.0|
+|Required Axon versions| >= 4.0.0|
 |Runs on|Java|
 |State|`Stable`|
 
@@ -61,8 +61,9 @@ import java.util.concurrent.TimeUnit;
 
 //3rd party imports
 import ai.blackout.node.*;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 /**
@@ -83,16 +84,16 @@ public class SendingNode extends Node{
      * Constructor
      * @throws URISyntaxException
      */
-    public SendingNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
-        super( token,  axonURL,  debug, proxy);
-    }
+//    public SendingNode(String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+//        super( token,  axonURL,  debug, proxy);
+//    }
 
     /**
      * Setting up everything. This will be called everytime before the connection is established
      */
     @Override
     public void setUp(){
-        super.setUp();
+        super.setUp(); // just printing
         Runnable exec = new Runnable() {
             /**
              * Sending current minute and second to the ListeningNode on the printTime and fuseTime callback.
@@ -104,15 +105,19 @@ public class SendingNode extends Node{
                     int min = time.getMinute();
                     int sec = time.getSecond();
                     JSONArray arrayParams = new JSONArray();
-                    arrayParams.add(min);
-                    arrayParams.add(sec);
+                    arrayParams.put(min);
+                    arrayParams.put(sec);
                     JSONObject objectParams = new JSONObject();
-                    objectParams.put("min", min);
-                    objectParams.put("sec", sec);
+                    try {
+                        objectParams.put("min", min);
+                        objectParams.put("sec", sec);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                     try {
                         publish("exampleGroup", "example", "printTime", arrayParams);
                         publish("exampleGroup", "example", "fuseTime", objectParams);
-                    } catch (NexusNotConnectedException e) {
+                    } catch (NexusNotConnectedException | JSONException e) {
                         onError(e);
                     }
                     try {
@@ -132,15 +137,14 @@ public class SendingNode extends Node{
      * if not differently specified in onDisconnected()
      */
     @Override
-    public void cleanUp(){
-        super.cleanUp();
+    public void onDisconnected(String reason, boolean remote) {
+        super.onDisconnected(reason, remote); // for the print
         try {
             this.shouldRun = false;
             this.sendThread.join();
         } catch (InterruptedException e) {
             onError(e);
         }
-
     }
 
     /**
@@ -151,7 +155,12 @@ public class SendingNode extends Node{
      */
     public String fuseTime_response(Object params) {
         JSONObject JSONparams = (JSONObject) params;        // You need to know what you take here JSONObject or JSONArray
-        String fusedTime = (String) JSONparams.get("returnValue");
+        String fusedTime = null;
+        try {
+            fusedTime = (String) JSONparams.get("returnValue");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         System.out.println("[" + this.nodeName + "]: " + fusedTime);
         return null;
     }
@@ -169,7 +178,12 @@ public class SendingNode extends Node{
             e.printStackTrace();
         }
     }
+    @Override
+    public void onError(Exception ex){
+        super.onError(ex); // Just printing
+    }
 }
+
 ```
 The ListeningNode and all further examples can be seen in the test folder.
 
