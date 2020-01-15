@@ -1,18 +1,16 @@
 package ai.blackout.node;
 
 //System imports
+
 import java.net.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
 //3rd party imports
-//import org.java_websocket.client.WebSocketClient;
-//import org.java_websocket.handshake.ServerHandshake;
-//import org.java_websocket.exceptions.WebsocketNotConnectedException;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONArray;
+
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -25,7 +23,7 @@ import io.socket.engineio.client.transports.WebSocket;
 public class NexusConnector {
 
     private String protocolVersion = "5.0";
-    private UUID nodeID;
+    private String nodeID;
     private Map<String, Map<String, Map<String, Callback>>> callbacks;
     private boolean isRegistered = false;
     private boolean isConnected = false;
@@ -33,27 +31,25 @@ public class NexusConnector {
     private String warningTopic = "ai.blackout.warning";
     private String errorTopic = "ai.blackout.error";
     private boolean debug = false;
-    private Connector connector;
     private String token;
     private String axon;
     private Connector parent;
     private String parentName;
     private Proxy proxy;
     private Socket socket;
+    private boolean remote;
+    private String reason;
+    private boolean reconnect;
 
     /**
      * Constructor for the NexusConnector.
      *
      * @param connectCallback the callback which is triggered if connected to the nexus
-     * @param token Token for the authentification with the axon
-     * @param axonURL URL to axon
-     * @param debug should debug messages be sent
+     * @param token           Token for the authentification with the axon
+     * @param axonURL         URL to axon
+     * @param debug           should debug messages be sent
      */
-    public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug) throws URISyntaxException {
-        System.out.println("NEXUSCONNECTOR: AXON: " + axonURL);
-        IO.Options opts = new IO.Options();
-        opts.transports = new String[]{ WebSocket.NAME};
-        this.socket = IO.socket("https://" + axonURL, opts);
+    public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug) {
         this.token = token;
         this.axon = axonURL;
         this.debug = debug;
@@ -65,8 +61,7 @@ public class NexusConnector {
             this.parentName = this.parent.getClass().getName();
         }
 
-        this.connector = connectCallback;
-        this.nodeID = UUID.randomUUID();
+//        this.nodeID = UUID.randomUUID();
         this.callbacks = new HashMap<String, Map<String, Map<String, Callback>>>();
         //GET SYSTEMPROXY    todo: check support for proxies: https://github.com/socketio/socket.io-client-java/issues/50#issuecomment-319267638
 //        try {
@@ -78,32 +73,6 @@ public class NexusConnector {
 //            this.onError(e);
 //        }
 
-        this.socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
-
-                @Override
-                public void call(Object... args) {
-                    NexusConnector.this.isConnected = true;
-                    System.out.println("Connected!");
-                }
-
-            }).on("btnexus-registration", new Emitter.Listener() {
-
-                @Override
-                public void call(Object... args) {
-                    JSONObject obj = (JSONObject)args[0];
-                    System.out.println("btnexus-registration: " + obj);
-                }
-
-            }).on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
-
-                @Override
-                public void call(Object... args) {
-                    System.out.println("Disconnected!");
-                }
-
-            });
-        System.out.println("BEFORE CONNECT");
-//        this.socket.connect();
 
     }
 
@@ -116,14 +85,15 @@ public class NexusConnector {
      * @param debug should debug messages be sent
      * @param proxy the proxy which should be used for the connection
      */
-//    public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
-//        this( connectCallback,  token,  axonURL,  debug);
-//        this.proxy = proxy;
+    public NexusConnector(Connector connectCallback, String token, String axonURL, boolean debug, Proxy proxy) throws URISyntaxException {
+        this( connectCallback,  token,  axonURL,  debug);
+        this.proxy = proxy;
 //        this.setProxy(this.proxy); // TODO: 13.01.20 is there a proxy option?
-//    }
+    }
 
     /**
      * Getter for isConnected
+     *
      * @return isConnected
      */
     public boolean isConnected() {
@@ -132,6 +102,7 @@ public class NexusConnector {
 
     /**
      * Getter for proxy
+     *
      * @return proxy
      */
     private Proxy getProxy() {
@@ -140,55 +111,70 @@ public class NexusConnector {
 
     /**
      * Getter for callbacks
+     *
      * @return callbacks
      */
     public Map<String, Map<String, Map<String, Callback>>> getCallbacks() {
         return this.callbacks;
     }
+
     /**
      * Getter for nodeID
+     *
      * @return nodeID
      */
-    public UUID getNodeID() {
+    public String getNodeID() {
         return this.nodeID;
     }
+
     /**
      * Getter for connector
+     *
      * @return connector
      */
     public Connector getConnector() {
-        return this.connector;
+        return this.parent;
     }
+
     /**
      * Getter for parentName
+     *
      * @return parentName
      */
     public String getParentName() {
         return this.parentName;
     }
+
     /**
      * Getter for debug
+     *
      * @return debug
      */
     public boolean getDebug() {
         return this.debug;
     }
+
     /**
      * Getter for axon
+     *
      * @return axon
      */
     public String getAxon() {
         return this.axon;
     }
+
     /**
      * Getter for parent
+     *
      * @return parent
      */
     public Connector getParent() {
         return this.parent;
     }
+
     /**
      * Getter for token
+     *
      * @return token
      */
     public String getToken() {
@@ -196,31 +182,24 @@ public class NexusConnector {
     }
 
     /**
-     * Grabs the ENV variables to construct a URI for the websocket
-     * @return URI for the websocket
-     * @throws URISyntaxException
-     */
-    public static URI getNexusURI(String axonURL) throws URISyntaxException {
-        String concat = "wss://" + axonURL;
-        return new URI(concat);
-    }
-
-    /**
      * Join a specific group
+     *
      * @param group The group to join to
      * @throws NexusNotConnectedException
      */
-    private void join(String group) throws NexusNotConnectedException {
+    private void join(String group) throws NexusNotConnectedException, JSONException {
         Message join = new Message("join");
         join.put("groupName", group);
         this.publishMessage(join);
     }
+
     /**
      * Leave a specific group
+     *
      * @param group The group to leave
      * @throws NexusNotConnectedException
      */
-    private void leave(String group) throws NexusNotConnectedException {
+    private void leave(String group) throws NexusNotConnectedException, JSONException {
         Message leave = new Message("leave");
         leave.put("groupName", group);
         this.publishMessage(leave);
@@ -228,13 +207,14 @@ public class NexusConnector {
 
     /**
      * Links the Message to the corrosponding Callback
+     *
      * @param msg Incoming Message from the btNexus
      */
-    private void callbackManager(Message msg) {
+    private void callbackManager(Message msg) throws JSONException {
         String topic = (String) msg.get("topic");
         topic = topic.replace("ai.blackout.", "");
         JSONObject payload = (JSONObject) msg.get("payload");
-        String callbackName = (String) payload.keySet().toArray()[0];
+        String callbackName = (String) payload.keys().next(); //Can only have one callbackName by definition of the protocol
         Object params;
         Callback callback;
         String group = (String) msg.get("group");
@@ -257,16 +237,13 @@ public class NexusConnector {
 
     /**
      * Method to add a callback to a specific topic and function name.
+     *
      * @param group    The group on which the callback should react
      * @param topic    The topic on which the callback should react
      * @param name     The function name within the message the callback should react on
      * @param callback A {@link Callback} which has to take a {@link JSONArray} as parameter
      */
-    public void subscribe(String group, String topic, String name, Callback callback) throws NexusNotConnectedException {
-        if (!this.isConnected) {
-            throw new NexusNotConnectedException("You can't subscribe if the connection to the nexus is not established!");
-        }
-
+    public void subscribe(String group, String topic, String name, Callback callback) throws NexusNotConnectedException, JSONException {
         if (this.callbacks.get(group) == null) {
             this.join(group);
             this.callbacks.put(group, new HashMap<String, Map<String, Callback>>());
@@ -282,27 +259,24 @@ public class NexusConnector {
 
     /**
      * Method to remove a callback from a specific topic and function name.
-     * @param group    The group on which the callback should react
-     * @param topic    The topic on which the callback should react
-     * @param name     The function name within the message the callback should react on
+     *
+     * @param group The group on which the callback should react
+     * @param topic The topic on which the callback should react
+     * @param name  The function name within the message the callback should react on
      */
-    public void unsubscribe(String group, String topic, String name) throws Exception {
-        //check if connected
-        if (!this.isConnected) {
-            throw new NexusNotConnectedException("You can't unsubscribe if the connection to the nexus is not established!");
-        }
+    public void unsubscribe(String group, String topic, String name) throws NexusProtocolException, JSONException, NexusNotConnectedException {
         //check for existence
         Callback callback;
-        try{
+        try {
             callback = this.callbacks.get(group).get(topic).get(name);
-        }catch (NullPointerException ex){
+        } catch (NullPointerException ex) {
             callback = null;
         }
-        if(callback == null){
+        if (callback == null) {
             throw new NexusProtocolException("Unsubscribe from " + name, "non existing Callback! Choose one out of: " + this.callbacks.toString());
         }
         // if the only callback on topic -> remove topic from map
-        if (this.callbacks.get(group).get(topic).size() == 1){
+        if (this.callbacks.get(group).get(topic).size() == 1) {
             this.callbacks.get(group).remove(topic);
             Message unsub = new Message("unsubscribe");
             unsub.put("topic", topic);
@@ -315,34 +289,11 @@ public class NexusConnector {
                 //leave message
                 leave(group);
             }
-        }else{
+        } else {
             this.callbacks.get(group).get(topic).remove(name);
         }
 
     }
-
-    /**
-     * Here the registering process is triggered.
-     * {@inheritDoc}
-     */
-//    @Override
-//    public void onOpen(ServerHandshake handshakedata) {
-//        try {
-//            Message msg = new Message("register");
-//            msg.put("token", this.token);
-//            msg.put("host", InetAddress.getLocalHost().getHostName());
-//            msg.put("ip", "127.0.0.1");
-//            msg.put("id", this.nodeID.toString());
-//            JSONObject node = new JSONObject();
-//            msg.put("node", node);
-//            send(msg.toString());
-//            System.out.println("[" + this.parentName + "]: opened connection with " + this.proxy);
-//
-//        } catch (UnknownHostException e) {
-//            this.onError(e);
-//        }
-//
-//    }
 
     /**
      * Method to publish a {@link Message} to the nexus.
@@ -351,12 +302,12 @@ public class NexusConnector {
      *
      * @param msg A {@link Message} which should be send
      */
-    public void publishMessage(Message msg) throws NexusNotConnectedException {
-        msg.put("nodeId", this.nodeID.toString());
-        try {
-            this.socket.send(msg.toString()); // TODO: 13.01.20 is send using emit('message')?
-        } catch (Exception e) { // TODO: 14.01.20 check which connections should be used here. 
-            throw new NexusNotConnectedException("The connection to the nexus broke down!");
+    public void publishMessage(Message msg) throws NexusNotConnectedException, JSONException {
+        if (this.isRegistered && this.isConnected){
+            msg.put("nodeId", this.nodeID);
+            this.socket.send(msg.toString());
+        } else {
+            throw new NexusNotConnectedException("Couldn't send " + msg.toString() + " - You are not connected to the Axon");
         }
     }
 
@@ -368,7 +319,7 @@ public class NexusConnector {
      * @param funcName The name of the function which should be triggerd with this message
      * @param params   A {@link JSONArray} which contains the parameters for the function.
      */
-    public void publish(String group, String topic, String funcName, JSONArray params) throws NexusNotConnectedException {
+    public void publish(String group, String topic, String funcName, JSONArray params) throws NexusNotConnectedException, JSONException {
         try {
             Message msg = new Message("publish");
             msg.put("topic", "ai.blackout." + topic);
@@ -391,7 +342,7 @@ public class NexusConnector {
      * @param funcName The name of the function which should be triggerd with this message
      * @param params   A {@link JSONObject} which contains the parameters for the function.
      */
-    public void publish(String group, String topic, String funcName, JSONObject params) throws NexusNotConnectedException {
+    public void publish(String group, String topic, String funcName, JSONObject params) throws NexusNotConnectedException, JSONException {
         try {
             Message msg = new Message("publish");
             msg.put("topic", "ai.blackout." + topic);
@@ -413,97 +364,65 @@ public class NexusConnector {
      * The corrosponding callback to the Message will be executed.
      * {@inheritDoc}
      */
-//    @Override
-//    public void onMessage(String message) {
-//        Message msg;
-//        try {
-//            JSONParser parser = new JSONParser();
-//            JSONObject json = (JSONObject) parser.parse(message);
-//            msg = new Message(json);
-//        } catch (ParseException e) {
-//            this.onError(e);
-//            return;
-//        }
-//        JSONObject api = (JSONObject) msg.get("api");
-//        String intent = (String) api.get("intent");
-//        if (intent.equals("registerSuccess")) {
-//            //Check Version here
-//            String [] parts = this.protocolVersion.split(Pattern.quote("."));
-//            int major = Integer.parseInt(parts[0]);
-//            int minor = Integer.parseInt(parts[1]);
-//            String msgVersion = (String)api.get("version");
-//            parts = msgVersion.split(Pattern.quote("."));
-//            int msgMajor = Integer.parseInt(parts[0]);
-//            int msgMinor = Integer.parseInt(parts[1]);
-//
-//            if(major > msgMajor) {
-//                onClose(-1, "The Axon you are trying to connect to is no longer supported! Major Version must be greater than " + major + " but is " + msgMajor, false);
-//                return;
-//            }
-//            if (major == msgMajor && minor > msgMinor){
-//                    //info minor is smaller
-//                try {
-//                    publishDebug("Minor Version missmatch");
-//                }catch (NexusNotConnectedException ne){
-//                    onError(ne);
-//                }
-//            }
-//            try {
-//                this.publishDebug("Registered successfully");
-//            } catch (NexusNotConnectedException e) {
-//                e.printStackTrace();
-//            }
-//            this.isRegistered = true;
-//            this.isConnected = true;
-//            this.connector.onConnected();
-//        } else if (intent.equals("registerFailed")) {
-//            onError(new NexusProtocolException("Register", msg.get("reason").toString()));
-//            //System.out.println("[" + this.parentName + "]: Register failed with reason: " + msg.get("reason"));
-//        } else if (intent.equals("subscribeSuccess")) {
-//            try {
-//                this.publishDebug("Subscribed to: " + msg.get("topic"));
-//            } catch (NexusNotConnectedException e) {
-//                e.printStackTrace();
-//            }
-//        } else if (intent.equals("subscribeFailed")) {
-//            this.onError(new NexusProtocolException("Subscribe to " +  msg.get("topic").toString(), msg.get("reason").toString()));
-//        } else if (intent.equals("joinSuccess")) {
-//            try {
-//                this.publishDebug("Joined Group: " + msg.get("groupName"));
-//            } catch (NexusNotConnectedException e) {
-//                e.printStackTrace();
-//            }
-//        } else if (intent.equals("joinFailed")) {
-//            this.onError(new NexusProtocolException("Join " + msg.get("groupName"), msg.get("reason").toString()));
-//        } else if (intent.equals("leaveSuccess")) {
-//            try {
-//                this.publishDebug("Left Group: " + msg.get("groupName"));
-//            } catch (NexusNotConnectedException e) {
-//                e.printStackTrace();
-//            }
-//        } else if (intent.equals("leaveFailed")) {
-//            this.onError(new NexusProtocolException("Leave Group " + msg.get("groupName"), msg.get("reason").toString()));
-//        } else if (intent.equals("unsubscribeSuccess")) {
-//            try {
-//                this.publishDebug("Unsubscribed from topic: " + msg.get("topic"));
-//            } catch (NexusNotConnectedException e) {
-//                e.printStackTrace();
-//            }
-//        } else if (intent.equals("unsubscribeFailed")) {
-//            onError(new NexusProtocolException("Unsubscribe from " + msg.get("topic"), msg.get("reason").toString()));
-//        } else {
-//            if (this.isRegistered) {
-//                callbackManager(msg);
-//            }
-//        }
-//    }
+    public void onMessage(String message) throws JSONException, NexusNotConnectedException {
+        JSONObject json = new JSONObject(message);
+        Message msg = new Message(json);
+        JSONObject api = (JSONObject) msg.get("api");
+        String intent = (String) api.get("intent");
+        if (intent.equals("registerSuccess")) {
+            //Check Version here
+            String [] parts = this.protocolVersion.split(Pattern.quote("."));
+            int major = Integer.parseInt(parts[0]);
+            int minor = Integer.parseInt(parts[1]);
+            String msgVersion = (String)api.get("version");
+            parts = msgVersion.split(Pattern.quote("."));
+            int msgMajor = Integer.parseInt(parts[0]);
+            int msgMinor = Integer.parseInt(parts[1]);
+            this.isRegistered = true;
+            this.isConnected = true;
+
+            if(major > msgMajor) {
+                this.disconnect("The Axon you are trying to connect to is no longer supported! Major Version must be greater than " + major + " but is " + msgMajor, false);
+                return;
+            }
+            if (major == msgMajor && minor > msgMinor){
+                publishDebug("Minor Version missmatch");
+            }
+                this.publishDebug("Registered successfully");
+
+            this.parent.onConnected();
+        } else if (intent.equals("registerFailed")) {
+            onError(new NexusProtocolException("Register", msg.get("reason").toString()));
+            //System.out.println("[" + this.parentName + "]: Register failed with reason: " + msg.get("reason"));
+        } else if (intent.equals("subscribeSuccess")) {
+                this.publishDebug("Subscribed to: " + msg.get("topic"));
+        } else if (intent.equals("subscribeFailed")) {
+            this.onError(new NexusProtocolException("Subscribe to " +  msg.get("topic").toString(), msg.get("reason").toString()));
+        } else if (intent.equals("joinSuccess")) {
+                this.publishDebug("Joined Group: " + msg.get("groupName"));
+        } else if (intent.equals("joinFailed")) {
+            this.onError(new NexusProtocolException("Join " + msg.get("groupName"), msg.get("reason").toString()));
+        } else if (intent.equals("leaveSuccess")) {
+                this.publishDebug("Left Group: " + msg.get("groupName"));
+        } else if (intent.equals("leaveFailed")) {
+            this.onError(new NexusProtocolException("Leave Group " + msg.get("groupName"), msg.get("reason").toString()));
+        } else if (intent.equals("unsubscribeSuccess")) {
+                this.publishDebug("Unsubscribed from topic: " + msg.get("topic"));
+        } else if (intent.equals("unsubscribeFailed")) {
+            onError(new NexusProtocolException("Unsubscribe from " + msg.get("topic"), msg.get("reason").toString()));
+        } else {
+            if (this.isRegistered) {
+                callbackManager(msg);
+            }
+        }
+    }
 
     /**
      * Method to publish a {@link Message} to the nexus on the debug topic.
      *
      * @param debug A debug text message
      */
-    public void publishDebug(String debug) throws NexusNotConnectedException {
+    public void publishDebug(String debug) throws NexusNotConnectedException, JSONException {
         if (this.debug) {
             Message debMsg = new Message("publish");
             debMsg.put("topic", this.debugTopic);
@@ -521,7 +440,7 @@ public class NexusConnector {
      *
      * @param warning A warning text message
      */
-    public void publishWarning(String warning) throws NexusNotConnectedException {
+    public void publishWarning(String warning) throws NexusNotConnectedException, JSONException {
         Message warnMsg = new Message("publish");
         warnMsg.put("topic", this.warningTopic);
         JSONObject warnObj = new JSONObject();
@@ -537,7 +456,7 @@ public class NexusConnector {
      *
      * @param error A error text message
      */
-    public void publishError(String error) throws NexusNotConnectedException {
+    public void publishError(String error) throws NexusNotConnectedException, JSONException {
         Message errorMsg = new Message("publish");
         errorMsg.put("topic", this.errorTopic);
         JSONObject errorObj = new JSONObject();
@@ -547,34 +466,133 @@ public class NexusConnector {
         errorMsg.put("payload", errorObj);
         publishMessage(errorMsg);
     }
-    public void connect(){
-        System.out.println("Trying to connect");
+
+    public void connect(IO.Options opts) throws URISyntaxException {
+        this.setUp();
+        System.out.println("Defaults: ");
+        System.out.println("transports: " + opts.transports);
+        System.out.println("reconnection: " + opts.reconnection);
+
+        if (opts.transports == null) {
+            opts.transports = new String[]{WebSocket.NAME};
+        }
+        this.reconnect = opts.reconnection;
+        this.socket = IO.socket("https://" + this.axon, opts);
+        this.socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+
+            @Override
+            public void call(Object... args) {
+                NexusConnector.this.isConnected = true;
+            }
+
+        }).on("btnexus-registration", new Emitter.Listener() {
+
+            @Override
+            public void call(Object... args) {
+                for (Object obj : args) { // per definition of the protocol this is only one...
+                    JSONObject data = (JSONObject) obj;
+                    try {
+                        NexusConnector.this.nodeID = (String) data.get("nodeId");
+                        Message msg = new Message("register");
+                        msg.put("token", NexusConnector.this.token);
+                        msg.put("host", InetAddress.getLocalHost().getHostName());
+                        msg.put("ip", "127.0.0.1");
+                        msg.put("id", NexusConnector.this.nodeID);
+                        JSONObject node = new JSONObject(); // This is empty in this implementation
+                        msg.put("node", node);
+                        NexusConnector.this.socket.send(msg.toString());
+                    } catch (JSONException | UnknownHostException e) {
+                        NexusConnector.this.onError(e);
+                    }
+                }
+
+
+            }
+
+        }).on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
+
+            @Override
+            public void call(Object... args) {
+                // TODO: can more info about the reason be extracted here?
+//                for (Object obj : args) { // per definition of the protocol this is only one...
+////                    JSONObject data = (JSONObject) obj;
+//                    System.out.println("disconnect: " + obj);
+//                }
+                NexusConnector.this.onDisconnected(NexusConnector.this.reason, NexusConnector.this.remote);
+            }
+
+        }).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
+
+            @Override
+            public void call(Object... args) {
+                for (Object obj : args) { // per definition of the protocol this is only one...
+                    try {
+                        NexusConnector.this.onMessage((String)obj);
+                    } catch (NexusNotConnectedException | JSONException e) {
+                        NexusConnector.this.onError(e);
+                    }
+                }
+            }
+
+        });
+
         this.socket.connect();
     }
 
+    public void connect() throws URISyntaxException {
+        connect(new IO.Options());
+    }
+
+    public void disconnect(String reason, boolean remote){
+        this.remote = remote;
+        this.reason = reason;
+    }
     /**
-     * Will be triggered if the connection is closed.
-     * {@inheritDoc}
+     * This will be executed after a the Node is disconnected from the btNexus
+     *
+     * @param reason the reason for the disconnect
+     * @param remote shows if the closing was triggered remotely
      */
-//    @Override
-//    public void onClose(int code, String reason, boolean remote) {
-//        this.isConnected = false;
-//        try {
-//            this.publishDebug( "Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: " + reason);
-//        } catch (NexusNotConnectedException e) {
-//            e.printStackTrace();
-//        }
-//        this.connector.onDisconnected( code,  reason,  remote);
-//    }
+    public void onDisconnected(String reason, boolean remote){
+        this.callbacks = new HashMap<String, Map<String, Map<String, Callback>>>();
+        this.isConnected = false;
+        this.isRegistered = false;
+        this.parent.onDisconnected(reason, remote);
+        if (this.reconnect){
+            this.parent.setUp();
+        }
+    }
+
+
+    public void setUp(){
+        this.remote = true;
+        this.reason = "Axon closed connection";
+        this.parent.setUp();
+    }
 
     /**
      * Will be triggered if an error occurs.
      * if the error is fatal then onClose will be called additionally
      * {@inheritDoc}
      */
-//    @Override
     public void onError(Exception ex) {
-        this.connector.onError(ex);
+        try {
+            throw (ex);
+        }catch (NexusProtocolException e){
+            try {
+                this.publishDebug(e.getStage() + ": " + e.getReason());
+            } catch (NexusNotConnectedException | JSONException exc) {
+                this.onError(exc);
+            }
+        }catch (NexusNotConnectedException e){
+//            System.out.println("[" + this.parentName + "]: Error: " + ExceptionHandling.StackTraceToString(ex));
+        }catch (Exception e){
+            try {
+                this.publishError(ExceptionHandling.StackTraceToString(ex));
+            } catch (NexusNotConnectedException | JSONException exc) {
+                this.onError(exc);
+            }
+        }
+        this.parent.onError(ex);
     }
-
 }

@@ -4,8 +4,9 @@ package ai.blackout.node;
 
 
 //3rd party imports
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 /**
@@ -47,12 +48,17 @@ public class CallbackExecution implements Runnable {
         retVal = this.callback.apply(this.params);
 
         JSONObject returnParams = new JSONObject();
-        returnParams.put("orignCall",this.funcName);
-        returnParams.put("originParams",this.params);
-        returnParams.put("returnValue",retVal);
+        try {
+            returnParams.put("orignCall",this.funcName);
+            returnParams.put("originParams",this.params);
+            returnParams.put("returnValue",retVal);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
         try {
             nexus.publish(this.group, this.topic, this.funcName + "_response", returnParams);
-        } catch (NexusNotConnectedException e) {
+        } catch (NexusNotConnectedException | JSONException e) {
             System.out.println(e);
         }
     }

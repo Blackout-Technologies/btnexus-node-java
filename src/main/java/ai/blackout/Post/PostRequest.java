@@ -1,9 +1,8 @@
 package ai.blackout.Post;
 
 
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -63,7 +62,7 @@ public class PostRequest {
     /** Method          : send
      *  Description     : Sends the Post request with the currently set parameters and executes the callback
      * */
-    public void send() throws IOException, ParseException, HTTPExceptionWithReason {
+    public void send() throws IOException, HTTPExceptionWithReason, JSONException {
         this.conn = (HttpsURLConnection) this.server.openConnection();
         //Set request parameters and headers
         this.conn.setRequestMethod("POST");
@@ -92,9 +91,7 @@ public class PostRequest {
             }
             in.close();
             //crate JSONObject from String response
-//            System.out.println("[RESPONSE]: " + response); // TODO: 12.12.19 REMOVE
-            JSONParser pars = new JSONParser();
-            this.response = (JSONObject) pars.parse(response.toString());
+            this.response = new JSONObject(response.toString());
             callback.apply(this.response);
             //Disconnect from server
             conn.disconnect();
@@ -107,10 +104,8 @@ public class PostRequest {
             }
             in.close();
             //crate JSONObject from String response
-//            System.out.println("[RESPONSE]: " + response); // TODO: 12.12.19 REMOVE
-            JSONParser pars = new JSONParser();
             JSONObject errorResponse;
-            errorResponse = (JSONObject) pars.parse(response.toString());
+            errorResponse = new JSONObject(response.toString());
             //Disconnect from server
             conn.disconnect();
             throw new HTTPExceptionWithReason((String)errorResponse.get("error"));

@@ -4,8 +4,9 @@ import java.net.URISyntaxException;
 
 //3rd party imports
 import ai.blackout.node.*;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 /**
@@ -37,7 +38,11 @@ public class ListeningNode extends Node{
      */
     public Object printTime(Object params) {
         JSONArray JSONparams = (JSONArray) params;        // You need to know what you take here JSONObject or JSONArray
-        System.out.println("[" + this.nodeName +"]: " + JSONparams.get(0) + " || " + JSONparams.get(1));
+        try {
+            System.out.println("[" + this.nodeName +"]: " + JSONparams.get(0) + " || " + JSONparams.get(1));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         return null;
     }
     /**
@@ -47,7 +52,12 @@ public class ListeningNode extends Node{
      */
     public String fuseTime(Object params) {
         JSONObject JSONparams = (JSONObject) params;        // You need to know what you take here JSONObject or JSONArray
-        String fuse = Long.toString((Long) JSONparams.get("min")) + ":" + Long.toString((Long) JSONparams.get("sec")); //Do your calculations
+        String fuse = null; //Do your calculations
+        try {
+            fuse = JSONparams.get("min") + ":" + JSONparams.get("sec");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         return fuse;
     }
     /**
@@ -69,12 +79,11 @@ public class ListeningNode extends Node{
         this.lastError = ExceptionHandling.StackTraceToString(ex);
     }
     @Override
-    public void onDisconnected(int code, String reason, boolean remote){
-        System.out.println("I was disconnected! with " + Integer.toString(code) + ", " + reason + ", " + Boolean.toString(remote));
+    public void onDisconnected(String reason, boolean remote){
+        System.out.println("I was disconnected! with "  + reason + ", " + Boolean.toString(remote));
         // DO SOME CLEANUP HERE IF NEEDED
         System.out.println("Error: " + this.lastError);
         //IF YOU WANT TO RECONNECT CALL THE SUPER onDisconnected()
-        super.onDisconnected( code,  reason,  remote);
     }
 
 

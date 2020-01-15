@@ -1,7 +1,8 @@
 package ai.blackout.Post;
 
 
-import org.json.simple.JSONObject;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.net.MalformedURLException;
 
@@ -22,7 +23,7 @@ public class BTPostRequest extends PostRequest{
      *  @param server       : (String) the desired server to which the request is going to be sent
      *  @param callback     : Callback to be executed upon receiving request
      **/
-    public BTPostRequest(String intent, JSONObject params, String accesstoken, String server, Callback callback ) throws MalformedURLException {
+    public BTPostRequest(String intent, JSONObject params, String accesstoken, String server, Callback callback ) throws MalformedURLException, JSONException {
         super("blackout-token", accesstoken , server, getBlackOutRequest(intent, params), callback);
     }
 
@@ -31,7 +32,7 @@ public class BTPostRequest extends PostRequest{
      *  @param intent   : (String) the intent of the request.
      *  @param params   : (JSONObject) content for the request
      **/
-    private static JSONObject getBlackOutRequest(String intent, JSONObject params) {
+    private static JSONObject getBlackOutRequest(String intent, JSONObject params) throws JSONException {
         JSONObject api          = new JSONObject();
         api.put("version","5.0");
         api.put("intent",intent);

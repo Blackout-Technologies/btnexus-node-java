@@ -13,7 +13,7 @@ public interface Connector{
     /**
      * Implement this to handle the things, which should be done after the node is disconnected from the nexus.
      */
-    public void onDisconnected(int code, String reason, boolean remote);
+    public void onDisconnected(String reason, boolean remote);
     /**
      * Implement this to handle the things, which should be when an error occurs.
      */
@@ -22,9 +22,5 @@ public interface Connector{
      * Implement this to handle the things, which should be done before the connection to nexus is established.
      */
     public void setUp();
-    /**
-     * Implement this to handle the things, which should be when you disconnect the node.
-     */
-    public void cleanUp();
 }
 

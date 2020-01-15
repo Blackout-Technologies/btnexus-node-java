@@ -6,7 +6,8 @@ import java.util.HashMap;
 import java.util.UUID;
 
 //3rd party imports
-import org.json.simple.JSONObject;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 
@@ -23,7 +24,7 @@ public class Message extends JSONObject{
      *
      * @param intent The intent the Message should contain
      */
-    public Message(String intent){
+    public Message(String intent) throws JSONException {
         JSONObject api = new JSONObject();
         api.put("version", this.version);
         Long ts = System.currentTimeMillis();
@@ -44,10 +45,8 @@ public class Message extends JSONObject{
      *
      * @param json A {@link JSONObject} which contains a Message
      */
-    public Message(JSONObject json){
-//        this = (Message)json;
-//        super(json); //TODO: supersuperConstructor? can I cast JSONObject to HashMap? probaly not...The other option is to go over every entry and put in the new object...is shallow :/
-        this.putAll(json);
+    public Message(JSONObject json) throws JSONException{
+        super(json.toString());
     }
 
 
@@ -57,7 +56,7 @@ public class Message extends JSONObject{
      * @param authType The type which should be used for the Authentification
      * @param authValue The value for the Authentification
      */
-    public void addAuthHeader(String authType, String authValue){
+    public void addAuthHeader(String authType, String authValue) throws JSONException {
 
         JSONObject authHeader = new JSONObject();
         authHeader.put("type", authType);
