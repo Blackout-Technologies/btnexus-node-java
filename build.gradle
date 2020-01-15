@@ -28,7 +28,7 @@ publishing {
 
 
 group 'ai.blackout'
-version '4.0.0'
+version  "$System.env.VERSION"
 
 sourceCompatibility = 1.8
 

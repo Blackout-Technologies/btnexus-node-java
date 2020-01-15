@@ -434,10 +434,6 @@ public class NexusConnector {
 
     public void connect(IO.Options opts) throws URISyntaxException {
         this.setUp();
-        System.out.println("Defaults: ");
-        System.out.println("transports: " + opts.transports);
-        System.out.println("reconnection: " + opts.reconnection);
-
         if (opts.transports == null) {
             opts.transports = new String[]{WebSocket.NAME};
         }

@@ -23,6 +23,7 @@ deploy_production:
     USERNAME: $PRODUCTION_USERNAME
     PASSWORD: $PRODUCTION_PASSWORD
   script:
+    - export VERSION=$(cat VERSION).$CI_PIPELINE_IID
     - ./gradlew build
     - ./gradlew publish
   only:
