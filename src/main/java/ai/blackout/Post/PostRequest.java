@@ -56,13 +56,10 @@ public class PostRequest {
 
     }
 
-
-
-
-    /** Method          : send
-     *  Description     : Sends the Post request with the currently set parameters and executes the callback
+    /** Method          : _send
+     *  Description     : Sends the Post request with the currently set parameters and executes the callback(this is blocking)
      * */
-    public void send() throws IOException, HTTPExceptionWithReason, JSONException {
+    private void _send() throws IOException, JSONException, HTTPExceptionWithReason {
         this.conn = (HttpsURLConnection) this.server.openConnection();
         //Set request parameters and headers
         this.conn.setRequestMethod("POST");
@@ -113,5 +110,29 @@ public class PostRequest {
             //throw new HTTPExceptionWithReason(conn.getResponseCode(), (String)errorResponse.get("error"));
         }
 
+    }
+
+    /** Method          : send
+     *  Description     : Sends the Post request with the currently set parameters and executes the callback
+     * */
+    public void send(boolean blocking) throws IOException, HTTPExceptionWithReason, JSONException {
+        if (blocking){
+            _send();
+        }else{
+            Thread sendThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        _send();
+                    } catch (IOException | JSONException | HTTPExceptionWithReason e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            sendThread.start();
+        }
+    }
+    public void send() throws JSONException, IOException, HTTPExceptionWithReason {
+        send(false);
     }
 }
