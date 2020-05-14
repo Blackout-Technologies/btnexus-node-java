@@ -3,28 +3,32 @@ image: gradle:4.7.0-jdk8-alpine
 stages:
   - build
   - test
-  - deploy
+  - release
 
 build_package:
   stage: build
   script:
-    - gradle build
+    - ./gradlew build
+  artifacts:
+    paths:
+      - build/
+    expire_in: 1 day
+
 
 run_tests:
   stage: test
   script:
-    - gradle build
+    - echo "No Tests implemented"
     #- run tests ... cd tests
 
 
 deploy_production:
-  stage: deploy
+  stage: release
   variables:
     USERNAME: $PRODUCTION_USERNAME
     PASSWORD: $PRODUCTION_PASSWORD
   script:
     - export VERSION=$(cat VERSION).$CI_PIPELINE_IID
-    - ./gradlew build
     - ./gradlew publish
   only:
-    - master
+    - /^release.*/
